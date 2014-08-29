@@ -38,17 +38,16 @@
 
 
 void printUsage() {
-	std::cout  << "USAGE: pDataSupplier sendInterval nItems channelName IOR" << std::endl;
+	std::cout  << "USAGE: pDataSupplier sendInterval nItems IOR" << std::endl;
 	std::cout << "\tsendInterval: interval of time (msec) between 2 sends of a pData" << std::endl;
 	std::cout << "\tnItems: number of items to send (0 means forever)" << std::endl;
-	std::cout << "\tchannelName: the name of the notification channel" << std::endl;
 	std::cout << "\tIOR: the IOR of the notify service" << std::endl << std::endl;
 	exit(1);
 }
 
-void getParams(int argc,char *argv[],uint32_t &sendInterval,uint32_t &nItems,std::string &channelName,std::string &iorNS)
+void getParams(int argc,char *argv[],uint32_t &sendInterval,uint32_t &nItems,std::string &iorNS)
 {
-	if (argc!=5) {
+	if (argc!=4) {
 		std::cout << "Wrong command line!" <<std::endl;
 		printUsage();
 	}
@@ -66,8 +65,7 @@ void getParams(int argc,char *argv[],uint32_t &sendInterval,uint32_t &nItems,std
 		printUsage();
 	}
 
-	channelName = argv[3];
-	iorNS = argv[4];
+	iorNS = argv[3];
 }
 
 /**
@@ -78,15 +76,14 @@ int main(int argc, char *argv[])
 {
 	uint32_t sendInterval = 0;
 	uint32_t nItems = 0;
-	std::string channelName;
 	std::string iorNS;
-	getParams(argc, argv, sendInterval, nItems, channelName, iorNS);
+	getParams(argc, argv, sendInterval, nItems, iorNS);
 
 	DataSupplier ds;
 
         try {
 		ds.init_ORB(argc, argv);
-		ds.run(sendInterval, nItems, channelName, iorNS);
+		ds.run(sendInterval, nItems, iorNS);
 		ds.shutdown();
 	} catch(std::exception &ex) {
 		std::cout << "Exception: " << ex.what() << std::endl;
@@ -129,7 +126,7 @@ void DataSupplier::init_ORB (int argc,
 
 
 void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
-	const std::string &channelName,const std::string &iorNS)
+	const std::string &iorNS)
 {
 	CORBA::Object_var obj = orb->string_to_object(iorNS.c_str());
 
@@ -229,6 +226,10 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 		}
 	}
 
+	consumer->disconnect_push_consumer();
+
+	std::cout << "Deleting the channel ..." << std::endl;
+	channel->destroy();
 }
 
 void DataSupplier::shutdown () {
