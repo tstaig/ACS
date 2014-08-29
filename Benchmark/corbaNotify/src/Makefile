@@ -35,14 +35,18 @@
 #
 # C programs (public and local)
 # -----------------------------
-EXECUTABLES     =
+EXECUTABLES     = pDataConsumer pDataSupplier
 EXECUTABLES_L   = 
 
 #
 # <brief description of xxxxx program>
-xxxxx_OBJECTS   =	
+pDataConsumer_OBJECTS   =	pDataConsumer
+xxxxx_LDFLAGS   = 
+pDataConsumer_LIBS      = TAO_CosNotification_Serv
+
+pDataSupplier_OBJECTS   = 	pDataSupplier
 xxxxx_LDFLAGS   =
-xxxxx_LIBS      =
+pDataSupplier_LIBS      = TAO_CosNotification_Serv
 
 #
 # special compilation flags for single c sources
