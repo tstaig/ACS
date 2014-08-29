@@ -42,11 +42,13 @@ EXECUTABLES_L   =
 # <brief description of xxxxx program>
 pDataConsumer_OBJECTS   =	pDataConsumer
 xxxxx_LDFLAGS   = 
-pDataConsumer_LIBS      = TAO_CosNotification_Serv
+pDataConsumer_LIBS      = corbaNotifyTest_ifStubs TAO_CosNotification_Serv
 
 pDataSupplier_OBJECTS   = 	pDataSupplier
 xxxxx_LDFLAGS   =
-pDataSupplier_LIBS      = TAO_CosNotification_Serv
+pDataSupplier_LIBS      = corbaNotifyTest_ifStubs TAO_CosNotification_Serv
+
+corbaNotifyTest_ifStubs_LIBS = baciStubs maciStubs
 
 #
 # special compilation flags for single c sources
