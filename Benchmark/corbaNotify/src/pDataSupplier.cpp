@@ -135,7 +135,6 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 
 	if (CORBA::is_nil(ecf.in()))
 		throw std::runtime_error("no event channel factory");
-		//std::cout << "Is not an event channel factory!" << std::endl;
         else
 		std::cout << "Event channel factory loaded!" << std::endl;
 
@@ -214,7 +213,7 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 		oss << "AN_" << i;
 		data.antennaName = oss.str().c_str();
 
-		std::cout << "Iteration " << data.antennaName << std::endl;
+		std::cout << "Iteration " << data.antennaName << " in channel " << id << std::endl;
 
 		CORBA::Any any;
 		any <<= data;
@@ -222,7 +221,7 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 
 		if(sendInterval > 0)
 		{
-			sleep(sendInterval);
+			usleep(sendInterval);
 		}
 	}
 
