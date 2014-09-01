@@ -40,6 +40,8 @@ public:
 	 */
 	void init_ORB (int argc, char *argv []);
 
+	void run(uint32_t sendInterval,uint32_t nItems,const std::string &iorNS); 
+
 	/**
 	 * Disconnect from the NC and close the ORB
 	 */
