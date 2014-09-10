@@ -188,9 +188,12 @@ bool Consumer::run (int argc, ACE_TCHAR* argv[],CosNotifyChannelAdmin::ChannelID
 
 void Consumer::push (const CORBA::Any &event)
 {
+	uint64_t currTimestamp;
 	ACS::Time tsDiff;
+	ACS::Time tsSuppConDiff;
 	timespec tConsumerDiff;
 	timespec tSupplierDiff;
+	timespec tSuppConDiff;
 	timespec tEvent;
 
 	benchmark::MountStatusData *data;
@@ -198,13 +201,22 @@ void Consumer::push (const CORBA::Any &event)
 	{
 		// Calculate current event time
 		TimespecUtils::get_current_timespec(tEvent);
+		currTimestamp = TimespecUtils::timespec_2_100ns(tEvent);
 
 		// Check the delay of the current event
 		if(m_tLastEvent.tv_sec > 0 || m_tLastEvent.tv_nsec > 0)
 		{
+			// Calculate delay between consecutive events in the consumer
 			tConsumerDiff = TimespecUtils::diff_timespec(tEvent, m_tLastEvent);
+
+			// Calculate delay between consecutive events in the supplier
 			tsDiff = data->timestamp - m_lastEventTimestamp;
 			TimespecUtils::ns100_2_timespec(tsDiff, tSupplierDiff);
+
+			// Calculate delay between supplier and consumer
+			tsSuppConDiff = currTimestamp - data->timestamp;
+			TimespecUtils::ns100_2_timespec(tsSuppConDiff, tSuppConDiff);
+		
 
 			if(m_maxDelay.tv_sec > 0 || m_maxDelay.tv_nsec > 0)
 			{
@@ -223,9 +235,18 @@ void Consumer::push (const CORBA::Any &event)
 						data->antennaName.in(), TimespecUtils::timespec_2_str(tConsumerDiff).c_str(), 
 						TimespecUtils::timespec_2_str(m_maxDelay).c_str()));
 				}
+
+				if(m_maxDelay < tSuppConDiff)
+				{
+					ACE_DEBUG((LM_NOTICE, "%T Event received %s with delay %s but maximum allowed is %s s\n", 
+						data->antennaName.in(), TimespecUtils::timespec_2_str(tSuppConDiff).c_str(), 
+						TimespecUtils::timespec_2_str(m_maxDelay).c_str()));
+				}
+
 			} else {
-				ACE_DEBUG((LM_INFO, "%T Event received: %s with supplier delay %s s and consumer delay %s s\n", 
+				ACE_DEBUG((LM_INFO, "%T Event received: %s with delay %s s, supplier delay %s s and consumer delay %s s\n", 
 					data->antennaName.in(), 
+					TimespecUtils::timespec_2_str(tSuppConDiff).c_str(),
 					TimespecUtils::timespec_2_str(tSupplierDiff).c_str(),
 					TimespecUtils::timespec_2_str(tConsumerDiff).c_str()));
 			}
