@@ -46,7 +46,7 @@ class Consumer : public POA_CosNotifyComm::PushConsumer
 {
 public:
 	Consumer(void);
-	Consumer(double maxDelaySec);
+	Consumer(double maxDelaySec,const std::string &delayType);
 
 	bool run (int argc, ACE_TCHAR* argv[],
 		  CosNotifyChannelAdmin::ChannelID channelID,
@@ -67,6 +67,7 @@ protected:
 	timespec m_tLastEvent;
 	timespec m_maxDelay;
 	ACS::Time m_lastEventTimestamp;
+	std::string m_delayType;
 
 };
 
