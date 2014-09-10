@@ -40,11 +40,13 @@
 #include <orbsvcs/CosNotificationC.h>
 #include <orbsvcs/CosNotifyChannelAdminS.h>
 #include <orbsvcs/Notify/MonitorControlExt/NotifyMonitoringExtC.h>
+#include "corbaNotifyTest_ifC.h"
 
 class Consumer : public POA_CosNotifyComm::PushConsumer
 {
 public:
-	Consumer (void);
+	Consumer(void);
+	Consumer(double maxDelaySec);
 
 	bool run (int argc, ACE_TCHAR* argv[],
 		  CosNotifyChannelAdmin::ChannelID channelID,
@@ -62,6 +64,10 @@ protected:
 			std::string &errMsg);
 
 	CORBA::ORB_ptr m_orb;
+	timespec m_tLastEvent;
+	timespec m_maxDelay;
+	ACS::Time m_lastEventTimestamp;
+
 };
 
 #endif /*!PDATACONSUMER_H*/
