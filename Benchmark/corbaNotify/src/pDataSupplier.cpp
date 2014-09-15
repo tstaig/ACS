@@ -103,63 +103,84 @@ void getParams(int argc,char *argv[],uint32_t &sendInterval,uint32_t &nItems,std
 	}
 }
 
+DataSupplier ds;
+void signal_handler(int sig)
+{
+	ds.stop();
+}
+
 /**
  * TODOs:
  *    * Add the shutdown hook for a clean exit when CTRL+C is pressed
  */
 int main(int argc, char *argv[])
 {
+	uint32_t ret = 0;
 	uint32_t sendInterval = 0;
 	uint32_t nItems = 0;
 	std::string iorNS;
 	std::string channelFile;
-	getParams(argc, argv, sendInterval, nItems, iorNS, channelFile);
 
-	DataSupplier ds;
+	signal(SIGINT, signal_handler);
+
+	getParams(argc, argv, sendInterval, nItems, iorNS, channelFile);
 
         try {
 		ds.init_ORB(argc, argv);
 		ds.run(sendInterval, nItems, iorNS, channelFile);
-		ds.shutdown();
 	} catch(std::exception &ex) {
 		ACE_DEBUG((LM_ERROR, "%T Exception: %s\n", ex.what()));
-		exit(1);
+		ret = 1;
 	} catch(...) {
 		ACE_DEBUG((LM_ERROR, "%T An unknown exception has been thrown!\n"));
-		exit(1);
+		ret = 1;
 	}
+
+	ds.shutdown();
 
 	ACE_DEBUG((LM_INFO, "%T Supplier ends ...\n"));
 
-	exit(0);
+	exit(ret);
+}
+
+DataSupplier::DataSupplier()
+	: m_stop(false)
+{
+}
+
+DataSupplier::~DataSupplier()
+{
 }
 
 void DataSupplier::init_ORB (int argc,
                       char *argv []
                       )
 {
-  this->orb = CORBA::ORB_init (argc,  argv, "");
+	this->orb = CORBA::ORB_init (argc,  argv, "");
 
 
-  CORBA::Object_ptr poa_object  =
-    this->orb->resolve_initial_references("RootPOA");
+	CORBA::Object_ptr poa_object  =
+		this->orb->resolve_initial_references("RootPOA");
 
 
-  if (CORBA::is_nil (poa_object))
-    {
-      ACE_ERROR ((LM_ERROR, " (%P|%t) Unable to initialize the POA.\n"));
-      return;
-    }
-  this->root_poa_ =
-    PortableServer::POA::_narrow (poa_object);
+	if (CORBA::is_nil (poa_object))
+	{
+		ACE_ERROR ((LM_ERROR, " (%P|%t) Unable to initialize the POA.\n"));
+		return;
+	}
+	this->root_poa_ =
+		PortableServer::POA::_narrow (poa_object);
 
-  PortableServer::POAManager_var poa_manager =
-    root_poa_->the_POAManager ();
+	PortableServer::POAManager_var poa_manager =
+		root_poa_->the_POAManager ();
 
-  poa_manager->activate ();
-
+	poa_manager->activate ();
 }
 
+void DataSupplier::stop()
+{
+	m_stop = true;
+}
 
 void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 	const std::string &iorNS,const std::string &channelFile)
@@ -258,8 +279,7 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
         data.subrefCmdTilt = 5.5; // Commanded tilt of the subreflector
         data.subrefRotationCmdValid = true; // true if a command was sent to rotate the subreflector
 
-
-	for(uint32_t i = 0;nItems == 0 || i < nItems; ++i)
+	for(uint32_t i = 0;(nItems == 0 || i < nItems) && m_stop == false; ++i)
 	{
 
 		std::ostringstream oss;
@@ -282,17 +302,23 @@ void DataSupplier::run(uint32_t sendInterval,uint32_t nItems,
 		}
 	}
 
+	if(m_stop == true)
+	{
+		ACE_DEBUG((LM_INFO, "%T Stopping it ...\n"));
+	}
+
 	consumer->disconnect_push_consumer();
 
 	ACE_DEBUG((LM_INFO, "%T Deleting the channel %d ...\n", id));
 	channel->destroy();
 }
 
-void DataSupplier::shutdown () {
-   // shutdown the ORB.
-  if (!CORBA::is_nil (this->orb.in ()))
-    {
-      this->orb->shutdown(true);
-      this->orb->destroy();
-    }
+void DataSupplier::shutdown () 
+{
+	// shutdown the ORB.
+	if (!CORBA::is_nil (this->orb.in ()))
+	{
+		this->orb->shutdown(true);
+		this->orb->destroy();
+	}
 }

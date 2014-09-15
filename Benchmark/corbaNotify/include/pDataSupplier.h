@@ -35,6 +35,9 @@
 
 class DataSupplier {
 public:
+	DataSupplier();
+	virtual ~DataSupplier();
+
 	/**
 	 * Init ORB
 	 */
@@ -43,6 +46,8 @@ public:
 	void run(uint32_t sendInterval,uint32_t nItems,const std::string &iorNS,
 		 const std::string &channelFile); 
 
+	void stop();
+
 	/**
 	 * Disconnect from the NC and close the ORB
 	 */
@@ -50,6 +55,7 @@ public:
 private:
 	CORBA::ORB_var orb;
 	PortableServer::POA_var root_poa_;
+	bool m_stop;
 };
 
 #endif /*!PDATASUPPLIER_H*/

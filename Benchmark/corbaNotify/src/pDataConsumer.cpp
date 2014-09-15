@@ -134,6 +134,13 @@ void getParams(int argc,char *argv[],CosNotifyChannelAdmin::ChannelID &channelID
 	}
 }
 
+Consumer consumer;
+
+void signal_handler(int sig)
+{
+	ACE_DEBUG((LM_INFO, "%T Stopping it ...\n"));
+	consumer.disconnect_push_consumer();
+}
 
 int main(int argc, char *argv[])
 {
@@ -141,10 +148,12 @@ int main(int argc, char *argv[])
 	std::string iorNS;
 	double maxDelaySec;
 	std::string delayType;
+
+	signal(SIGINT, signal_handler);
+
 	getParams(argc, argv, channelID, iorNS, maxDelaySec, delayType);
 
-	Consumer consumer(maxDelaySec, delayType);
-	consumer.run(argc, argv, channelID, iorNS);
+	consumer.run(argc, argv, channelID, iorNS, maxDelaySec, delayType);
 
 	ACE_DEBUG((LM_INFO, "Consumer ends ...\n"));
 	return EXIT_SUCCESS;
@@ -158,18 +167,15 @@ Consumer::Consumer()
 	m_delayType = DT_SUPP_CON;
 }
 
-Consumer::Consumer(double maxDelaySec,const std::string &delayType)
-{
-	TimespecUtils::set_timespec(m_tLastEvent, 0, 0);
-	TimespecUtils::double_2_timespec(maxDelaySec, m_maxDelay);
-	ACE_DEBUG((LM_INFO, "Max delay: %s s\n", TimespecUtils::timespec_2_str(m_maxDelay).c_str()));
-	m_lastEventTimestamp = 0;
-	m_delayType = delayType;
-}
 
 bool Consumer::run (int argc, ACE_TCHAR* argv[],CosNotifyChannelAdmin::ChannelID channelID,
-		    const std::string &iorNS)
+		    const std::string &iorNS,double maxDelaySec,const std::string &delayType)
 {
+	
+	TimespecUtils::double_2_timespec(maxDelaySec, m_maxDelay);
+	ACE_DEBUG((LM_INFO, "Max delay: %s s\n", TimespecUtils::timespec_2_str(m_maxDelay).c_str()));
+	m_delayType = delayType;
+
 	try {
 		std::string errMsg;
 		if(init_ORB(argc, argv) == false)
