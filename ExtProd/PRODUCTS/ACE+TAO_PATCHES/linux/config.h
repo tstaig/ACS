@@ -5,15 +5,16 @@
 // The following configuration file is designed to work for Linux
 // platforms using GNU C++.
 
-#ifndef ACE_CONFIG_LINUX_H
-#define ACE_CONFIG_LINUX_H
+#ifndef ACE_CONFIG_H
+#define ACE_CONFIG_H
 #include /**/ "ace/pre.h"
 
 #define ACE_PLATFORM_CONFIG config-linux.h
 
-#include "ace/config-linux-common.h"
+#include "ace/config-linux.h"
 
 #define ACE_USE_RCSID 1 //added for ACS
+#define ACE_RCSID(path, file, log)
 
 #define ACE_HAS_SVR4_DYNAMIC_LINKING
 #define ACE_HAS_AUTOMATIC_INIT_FINI
@@ -74,4 +75,4 @@
 
 #include /**/ "ace/post.h"
 
-#endif /* ACE_CONFIG_LINUX_H */
+#endif /* ACE_CONFIG_H */
