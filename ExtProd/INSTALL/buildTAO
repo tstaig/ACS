@@ -96,7 +96,7 @@ mkdir $ALMASW_ROOTDIR/$ALMASW_RELEASE/TAO
 # Unpack the tar file
 # put the sources under $ALMASW_ROOTDIR/$ALMASW_RELEASE/TAO
 #
-FILE=ACE+TAO-5.8.1
+FILE=ACE+TAO-6.3.0
 ARCHIVE=`pwd`/../PRODUCTS/$FILE.tar.gz
 cd $ALMASW_ROOTDIR/$ALMASW_RELEASE/TAO
 echo "unpacking the archive"
@@ -108,8 +108,6 @@ echo ""
 # Apply patches
 #
 echo "patching the code"
-echo "- TAO_IDLsuppress_unique_guards_opt.patch"
-patch -p1 < $CURR_DIR/../PRODUCTS/ACE+TAO_PATCHES/TAO_IDLsuppress_unique_guards_opt.patch
 echo "- TAOLog.patch"
 patch -p1 < $CURR_DIR/../PRODUCTS/ACE+TAO_PATCHES/TAOLog.patch
 echo "- AVtimeout.patch"

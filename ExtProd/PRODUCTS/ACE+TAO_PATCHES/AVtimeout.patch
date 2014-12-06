@@ -259,7 +259,7 @@ diff -Naur TAO.org/ACE_wrappers/TAO/orbsvcs/orbsvcs/AV/UDP.cpp TAO/ACE_wrappers/
 +			       ACE_Time_Value *tv)
  {
    if (TAO_debug_level > 0)
-     ACE_DEBUG ((LM_DEBUG,"TAO_AV_UDP_Object::send_frame\n"));
+     ORBSVCS_DEBUG ((LM_DEBUG,"TAO_AV_UDP_Object::send_frame\n"));
 -  int const result = this->transport_->send (frame);
 +  int const result = this->transport_->send (frame, tv);
    if (result < 0)
