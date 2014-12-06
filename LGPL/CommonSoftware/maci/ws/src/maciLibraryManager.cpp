@@ -15,6 +15,8 @@
 
 #include <logging.h>
 
+#include <ace/Lib_Find.h>
+
 ACE_RCSID(maci, maciLibraryManager, "$Id: maciLibraryManager.cpp,v 1.93 2011/09/02 11:00:19 bjeram Exp $");
 
 namespace maci {
