@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
      ACSLog::NVPairSeq data;
 
       ACE_Time_Value tv = ACE_OS::gettimeofday();
-      acscommon::TimeStamp ts = (ACE_UINT64_LITERAL(0x2D8539C80) + ACE_static_cast(CORBA::ULongLong, tv.sec())) *ACE_static_cast(ACE_UINT32, 10000000) + ACE_static_cast(CORBA::ULongLong, tv.usec() * 10);
+      acscommon::TimeStamp ts = (ACE_UINT64_LITERAL(0x2D8539C80) + static_cast<CORBA::ULongLong>( tv.sec())) *static_cast<ACE_UINT32>(10000000) + static_cast<CORBA::ULongLong>(tv.usec() * 10);
       ACE_OS::printf("Test #1\n");      
 
       /*

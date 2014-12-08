@@ -14,7 +14,23 @@
 #include "ace/config-linux.h"
 
 #define ACE_USE_RCSID 1 //added for ACS
+
+//Added for backward compatibility
 #define ACE_RCSID(path, file, log)
+#if !defined (ACE_ANY_EXCEPTION)
+# define ACE_ANY_EXCEPTION ex
+#endif /* ACE_ANY_EXCEPTION */
+#define ACE_PRINT_TAO_EXCEPTION(EX,INFO) \
+  EX._tao_print_exception (INFO)
+#if !defined ACE_PRINT_EXCEPTION
+#  define ACE_PRINT_EXCEPTION(EX,INFO) ACE_PRINT_TAO_EXCEPTION(EX,INFO)
+#endif /* ACE_PRINT_EXCEPTION */
+#if !defined (ACE_TRY_ENV)
+# define ACE_TRY_ENV
+#endif /* ACE_TRY_ENV */
+#define ACE_CHECK_RETURN(RETV)
+#define ACE_ENV_ARG_DECL_NOT_USED
+//Ended backward compatibility block
 
 #define ACE_HAS_SVR4_DYNAMIC_LINKING
 #define ACE_HAS_AUTOMATIC_INIT_FINI
