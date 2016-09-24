@@ -28,20 +28,20 @@ vpath  %.so ../lib $(INTROOT)/lib $(FIDEOS_HOME)/lib $(VLTGNUPATH)/lib
 #8: Module Full Name
 #9: Module Relative Path
 define makeLibraries
-ALL_TARGETS=$(ALL_TARGETS) $9/lib/lib$1.so
+#ALL_TARGETS=$(ALL_TARGETS) $9/lib/lib$1.so
 $(eval $1_libs:=$2)
 $(eval $1_objs:=$3)
 $(foreach obj,$3,$(eval $(obj)_cflags:=$4))
 $(eval $1_ldflags:=$5)
 $(eval $1_target:=$8_$1)
 $(eval $1_path:=$9/lib/lib$1.so)
-.PHONY: $8_$1
-$8_$1: $9/lib/lib$1.so
+.PHONY: $8_$1_lib
+$8_$1_lib: $9/lib/lib$1.so
 	$(AT)
 $9/lib/lib$1.so: $(foreach obj,$3,$9/object/$(obj).o) $(foreach lib,$2,$(if $($(lib)_target),$($(lib)_path),-l$(lib))) | $9/lib
 	$(AT)g++ $(LDFLAGS) $5 -L $9/lib -shared $(foreach lib,$2,$(if $($(lib)_target),$($(lib)_path),-l$(lib))) $(foreach obj,$3,$9/object/$(obj).o) -o $9/lib/lib$1.so
-$(eval $(call genTargets,$8_$1,$9/lib/lib$1.so,lib,lib$1.so,$6,$(foreach obj,$3,$8_$1_$(obj)),,$8_$1))
-$(foreach obj,$3,$(eval $(call cleanFiles,$8_$1_$(obj),$9/object/$(obj).o,object,$(obj).o)))
+$(eval $(call genTargets,$8_$1_lib,$9/lib/lib$1.so,lib,lib$1.so,$6,$(foreach obj,$3,$8_$1_$(obj)_obj),,$8_$1_lib))
+$(foreach obj,$3,$(eval $(call cleanFiles,$8_$1_$(obj)_obj,$9/object/$(obj).o,object,$(obj).o)))
 endef
 
 #makeExecutables: Makes targets for c++ executables, both local and installable.
@@ -55,15 +55,15 @@ endef
 #8: Module Full Name
 #9: Module Relative Path
 define makeExecutables
-ALL_TARGETS=$(ALL_TARGETS) $9/bin/$1
+#ALL_TARGETS=$(ALL_TARGETS) $9/bin/$1
 $(foreach obj,$3,$(eval $(obj)_cflags:=$4))
-.PHONY: $7_$1
-$8_$1: $9/bin/$1
+.PHONY: $7_$1_exe
+$8_$1_exe: $9/bin/$1
 	$(AT)
 $9/bin/$1: $(foreach obj,$3,$9/object/$(obj).o) $(foreach lib,$2,$(if $($(lib)_target),$($(lib)_path),-l$(lib))) | $9/bin
 	$(AT)g++ $(LDFLAGS) $5 -L $7/lib -o $9/bin/$1 $(foreach obj,$3,$9/object/$(obj).o) $(foreach lib,$2,$(if $($(lib)_target),$($(lib)_path),-l$(lib)))
-$(eval $(call genTargets,$8_$1,$9/bin/$1,bin,$1,$6,$(foreach obj,$3,$8_$1_$(obj)),,$8_$1))
-$(foreach obj,$3,$(eval $(call cleanFiles,$8_$1_$(obj),$9/object/$(obj).o,object,$(obj).o)))
+$(eval $(call genTargets,$8_$1_exe,$9/bin/$1,bin,$1,$6,$(foreach obj,$3,$8_$1_$(obj)_obj),,$8_$1_exe))
+$(foreach obj,$3,$(eval $(call cleanFiles,$8_$1_$(obj)_obj,$9/object/$(obj).o,object,$(obj).o)))
 endef
 
 #makeScripts: Makes targets for scripts, both local and installable.
@@ -73,13 +73,29 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makeScripts
-ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
-$4_$1: $5/bin/$1
+#ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
+$4_$1_scr: $5/bin/$1
 	$(AT)
 $5/bin/$1: $5/src/$1 | $5/bin
 	$(AT)cp $5/src/$1 $5/bin/$1
 	$(AT)chmod +x $5/bin/$1
-$(eval $(call genTargets,$4_$1,$5/bin/$1,bin,$1,$2,,,$4_$1))
+$(eval $(call genTargets,$4_$1_scr,$5/bin/$1,bin,$1,$2,,,$4_$1_scr))
+endef
+
+#makePyScripts: Makes targets for Python scripts, both local and installable.
+#1: Script Name
+#2: Bool to Install or Not
+#3: Module to Make
+#4: Module Full Name
+#5: Module Relative Path
+define makePyScripts
+#ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
+$4_$1_pys: $5/bin/$1
+	$(AT)
+$5/bin/$1: $5/src/$1.py | $5/bin
+	$(AT)cp $5/src/$1.py $5/bin/$1
+	$(AT)chmod +x $5/bin/$1
+$(eval $(call genTargets,$4_$1_pys,$5/bin/$1,bin,$1,$2,,,$4_$1_pys))
 endef
 
 #genTargets: Generates clean, install and clean_dist targets.
@@ -106,7 +122,7 @@ endef
 #6: Bool to Install Dependencies or Not
 #7: Install dependency to all
 define installFiles
-INSTALL_TARGETS=$(INSTALL_TARGETS) install_$1
+#INSTALL_TARGETS=$(INSTALL_TARGETS) install_$1
 .PHONY: install_$1
 install_$1: $7 $(INSTDIR)/$3/$4 $(if $(findstring true,$6),$(foreach e,$5,install_$e),)
 	$(AT)
@@ -122,7 +138,7 @@ endef
 #5: Dependencies
 #6: Bool to Install Dependencies or Not.
 define cleanFiles
-CLEAN_TARGETS=$(CLEAN_TARGETS) clean_$1
+#CLEAN_TARGETS=$(CLEAN_TARGETS) clean_$1
 .PHONY: clean_$1
 clean_$1: $(foreach f,$5,clean_$(f))
 	$(AT)$(if $(wildcard $2),rm -rf $2,)
@@ -136,7 +152,7 @@ endef
 #5: Dependencies
 #6: Bool to Install Dependencies or Not.
 define cleanDistFiles
-CLEANDIST_TARGETS=$(CLEANDIST_TARGETS) clean_dist_$1
+#CLEANDIST_TARGETS=$(CLEANDIST_TARGETS) clean_dist_$1
 .PHONY: clean_dist_$1
 clean_dist_$1: clean_$1 $(if $(findstring true,$6),$(foreach e,$5,clean_dist_$e),)
 	$(AT)$(if $(wildcard $(INSTDIR)/$3/$4),rm -rf $(INSTDIR)/$3/$4,)
@@ -148,14 +164,14 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makePyModules
-$4_$1: $5/lib/python/site-packages/$1.pyc
+$4_$1_pym: $5/lib/python/site-packages/$1.pyc
 	$(AT)
 $5/lib/python/site-packages/$1.pyc: $5/lib/python/site-packages/$1.py
 	$(AT)python -m compileall $5/lib/python/site-packages/$1.py
 $5/lib/python/site-packages/$1.py: $5/src/$1.py | $5/lib/python/site-packages
 	$(AT)cp $5/src/$1.py $5/lib/python/site-packages/$1.py
-$(eval $(call genTargets,$4_$1,$5/lib/python/site-packages/$1.py,lib/python/site-packages,$1.py,$2,$4_$1_pyc,true,$4_$1))
-$(eval $(call genTargets,$4_$1_pyc,$5/lib/python/site-packages/$1.pyc,lib/python/site-packages,$1.pyc,$2))
+$(eval $(call genTargets,$4_$1_pym,$5/lib/python/site-packages/$1.py,lib/python/site-packages,$1.py,$2,$4_$1_pym_pyc,true,$4_$1_pym))
+$(eval $(call genTargets,$4_$1_pym_pyc,$5/lib/python/site-packages/$1.pyc,lib/python/site-packages,$1.pyc,$2))
 endef
 
 #1: Python Package Name
@@ -164,7 +180,7 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makePyPackages
-$4_$1: $(patsubst %.py,%.pyc,$(subst $5/src/$1,$5/lib/python/site-packages/$1,$(wildcard $5/src/$1/*.py)))
+$4_$1_pyp: $(patsubst %.py,%.pyc,$(subst $5/src/$1,$5/lib/python/site-packages/$1,$(wildcard $5/src/$1/*.py)))
 	$(AT)
 $5/lib/python/site-packages/$1/%.pyc: $5/lib/python/site-packages/$1/%.py
 	$(AT)python -m compileall $$?
@@ -172,12 +188,12 @@ $5/lib/python/site-packages/$1/%.py: $5/src/$1/%.py | $5/lib/python/site-package
 	$(AT)cp $$? $$@
 $5/lib/python/site-packages/$1: $5/src/$1 | $5/lib/python/site-packages
 	$(AT)$(if $(wildcard $5/lib/python/site-packages/$1),,mkdir $5/lib/python/site-packages/$1)
-.PHONY: clean_$4_$1 install_$4_$1 clean_dist_$4_$1
-clean_$4_$1: $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),clean_$4_$1_$(subst $1/,_,$(py)))
+.PHONY: clean_$4_$1_pyp install_$4_$1_pyp clean_dist_$4_$1_pyp
+clean_$4_$1_pyp: $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),clean_$4_$1_$(subst $1/,_,$(py)))
 	$(AT)
-clean_dist_$4_$1: $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),clean_dist_$4_$1_$(subst $1/,_,$(py)))
+clean_dist_$4_$1_pyp: $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),clean_dist_$4_$1_$(subst $1/,_,$(py)))
 	$(AT)
-install_$4_$1: $4_$1 | $(INSTDIR)/lib/python/site-packages/$1 $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),install_$4_$1_$(subst $1/,_,$(py)))
+install_$4_$1_pyp: $4_$1 | $(INSTDIR)/lib/python/site-packages/$1 $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),install_$4_$1_$(subst $1/,_,$(py)))
 	$(AT)
 $(INSTDIR)/lib/python/site-packages/$1: | $(INSTDIR)/lib/python/site-packages
 	$(AT)$(if $(wildcard $(INSTDIR)/lib/python/site-packages/$1),,mkdir $(INSTDIR)/lib/python/site-packages/$1)
@@ -190,12 +206,29 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makeIncludes
-$4_$1: $5/include/$1
+$4_$1_inc: $5/include/$1
 	$(AT)
-clean_$4_$1: $5/include/$1
+clean_$4_$1_inc: $5/include/$1
 	$(AT)
-$(eval $(call installFiles,$4_$1,$5/include/$1,include,$1))
-$(eval $(call cleanDistFiles,$4_$1,$5/include/$1,include,$1))
+$(eval $(call installFiles,$4_$1_inc,$5/include/$1,include,$1))
+$(eval $(call cleanDistFiles,$4_$1_inc,$5/include/$1,include,$1))
+endef
+
+#1: Install File Name
+#2: Bool to Install or Not
+#3: Module to Make
+#4: Module Full Name
+#5: Module Relative Path
+define makeInstallFiles
+$(eval ins_path:=$(patsubst ../%/,%,$(dir $1)))
+$(eval ins_file:=$(notdir $1))
+$(warning XXXXXXXXXXXXXXXXXX: $4_$1_ins)
+$4_$1_ins: $5/$(ins_path)/$(ins_file)
+	$(AT)
+clean_$4_$1_ins: $5/$(ins_path)/$(ins_file)
+	$(AT)
+$(eval $(call installFiles,$4_$1_ins,$5/$(ins_path)/$(ins_file),$(ins_path),$(ins_file)))
+$(eval $(call cleanDistFiles,$4_$1_ins,$5/$(ins_file)/$(ins_path),$(ins_path),$(ins_file)))
 endef
 
 #1: Config File Name
@@ -204,50 +237,74 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makeConfigs
-$4_$1: $5/config/$1
+$4_$1_cfg: $5/config/$1
 	$(AT)
-clean_$4_$1: $5/config/$1
+clean_$4_$1_cfg: $5/config/$1
 	$(AT)
-$(eval $(call installFiles,$4_$1,$5/config/$1,config,$1))
-$(eval $(call cleanDistFiles,$4_$1,$5/config/$1,config,$1))
+$(eval $(call installFiles,$4_$1_cfg,$5/config/$1,config,$1))
+$(eval $(call cleanDistFiles,$4_$1_cfg,$5/config/$1,config,$1))
+endef
+
+#1: List of targets
+#2: Module Full Name
+#3: All/Clean
+#4: Install/Clean_Dist
+#5: Suffix for targets
+define addTargets
+$(if $3,$(if $1,$(eval ALL_TARGETS+=$(addsuffix _$5,$(addprefix $2_,$1)))$(eval CLEAN_TARGETS+=$(addsuffix _$5,$(addprefix clean_$2_,$1))),),)
+$(if $4,$(if $1,$(eval INSTALL_TARGETS+=$(addsuffix _$5,$(addprefix install_$2_,$1)))$(eval CLEAN_DIST_TARGETS+=$(addsuffix _$5,$(addprefix clean_dist_$2_,$1))),),)
 endef
 
 #makeModule: Iterates over the lists of targets to make local and installable libraries, executables, scripts, etc. to create build, install and clean targets.
 #1: Module to Make
 #2: Module Full Name
 #3: Module Relative Path
-#4: List of Libraries
-#5: List of Executables
-#6: List of Scripts
-#7: List of Python Modules
-#8: List of Python Packages
-#9: List of Local Libraries
-#10: List of Local Executables
-#11: List of Local Scripts
-#12: List of Local Python Modules
-#13: List of Local Python Packages
-#14: List of Include Files to Install
-#15: List of Configuration Files to Install
 define makeModule
-$(foreach lib,$4,$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),true,$1,$2,$3)))
-$(foreach exe,$5,$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),true,$1,$2,$3)))
-$(foreach scr,$6,$(eval $(call makeScripts,$(scr),true,$1,$2,$3)))
-$(foreach pym,$7,$(eval $(call makePyModules,$(pym),true,$1,$2,$3)))
-$(foreach pyp,$8,$(eval $(call makePyPackages,$(pyp),true,$1,$2,$3)))
-$(foreach lib,$9,$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),false,$1,$2,$3)))
-$(foreach exe,$(10),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),false,$1,$2,$3)))
-$(foreach scr,$(11),$(eval $(call makeScripts,$(scr),false,$1,$2,$3)))
-$(foreach pym,$(12),$(eval $(call makePyModules,$(pym),false,$1,$2,$3)))
-$(foreach pyp,$(13),$(eval $(call makePyPackages,$(pyp),false,$1,$2,$3)))
-$(foreach inc,$(14),$(eval $(call makeIncludes,$(inc),true,$1,$2,$3)))
-$(foreach cfg,$(15),$(eval $(call makeConfigs,$(cfg),true,$1,$2,$3)))
-$2: $(foreach e,$4,$2_$e) $(foreach e,$5,$2_$e) $(foreach e,$6,$2_$e) $(foreach e,$7,$2_$e) $(foreach e,$8,$2_$e) $(foreach e,$9,$2_$e) $(foreach e,$(10),$2_$e) $(foreach e,$(11),$2_$e) $(foreach e,$(12),$2_$e) $(foreach e,$(13),$2_$e) $(foreach e,$(14),$2_$e) $(foreach e,$(15),$2_$e)
-clean_$2: $(foreach e,$4,clean_$2_$e) $(foreach e,$5,clean_$2_$e) $(foreach e,$6,clean_$2_$e) $(foreach e,$7,clean_$2_$e) $(foreach e,$8,clean_$2_$e) $(foreach e,$9,clean_$2_$e) $(foreach e,$(10),clean_$2_$e) $(foreach e,$(11),clean_$2_$e) $(foreach e,$(12),clean_$2_$e) $(foreach e,$(13),clean_$2_$e) $(foreach e,$(14),clean_$2_$e) $(foreach e,$(15),clean_$2_$e)
-	$(AT)
-install_$2: $(foreach e,$4,install_$2_$e) $(foreach e,$5,install_$2_$e) $(foreach e,$6,install_$2_$e) $(foreach e,$7,install_$2_$e) $(foreach e,$8,install_$2_$e) $(foreach e,$(14),install_$2_$e) $(foreach e,$(15),install_$2_$e)
-	$(AT)
-clean_dist_$2: $(foreach e,$4,clean_dist_$2_$e) $(foreach e,$5,clean_dist_$2_$e) $(foreach e,$6,clean_dist_$2_$e) $(foreach e,$7,clean_dist_$2_$e) $(foreach e,$8,clean_dist_$2_$e) $(foreach e,$(14),clean_dist_$2_$e) $(foreach e,$(15),clean_dist_$2_$e)
-	$(AT)
+$(eval ALL_TARGETS:=)
+$(eval CLEAN_TARGETS:=)
+$(eval INSTALL_TARGETS:=)
+$(eval CLEAN_DIST_TARGETS:=)
+$(foreach lib,$($2_LIBRARIES),$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_LIBRARIES),$2,true,true,lib))
+$(foreach exe,$($2_EXECUTABLES),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_EXECUTABLES),$2,true,true,exe))
+$(foreach scr,$($2_SCRIPTS),$(eval $(call makeScripts,$(scr),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_SCRIPTS),$2,true,true,scr))
+$(foreach pys,$($2_PY_SCRIPTS),$(eval $(call makePyScripts,$(pys),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_SCRIPTS),$2,true,true,pys))
+$(foreach pym,$($2_PY_MODULES),$(eval $(call makePyModules,$(pym),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_MODULES),$2,true,true,pym))
+$(foreach pyp,$($2_PY_PACKAGES),$(eval $(call makePyPackages,$(pyp),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_PACKAGES),$2,true,true,pyp))
+$(foreach lib,$($2_LIBRARIES_L),$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_LIBRARIES_L),$2,true,false,lib))
+$(foreach exe,$($2_EXECUTABLES_L),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_EXECUTABLES_L),$2,true,false,exe))
+$(foreach scr,$($2_SCRIPTS_L),$(eval $(call makeScripts,$(scr),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_SCRIPTS_L),$2,true,false,scr))
+$(foreach pys,$($2_PY_SCRIPTS_L),$(eval $(call makePyScripts,$(pys),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_SCRIPTS_L),$2,true,false,pys))
+$(foreach pym,$($2_PY_MODULES_L),$(eval $(call makePyModules,$(pym),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_MODULES_L),$2,true,false,pym))
+$(foreach pyp,$($2_PY_PACKAGES_L),$(eval $(call makePyPackages,$(pyp),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_PACKAGES_L),$2,true,false,pyp))
+$(foreach inc,$($2_INCLUDES),$(eval $(call makeIncludes,$(inc),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_INCLUDES),$2,false,true,inc))
+$(foreach cfg,$($2_CONFIGS),$(eval $(call makeConfigs,$(cfg),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_CONFIGS),$2,false,true,cfg))
+$(foreach ins,$($2_INSTALL_FILES),$(eval $(call makeInstallFiles,$(ins),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_INSTALL_FILES),$2,false,true,ins))
+#(warning ALL_TARGETS: $(ALL_TARGETS))
+#(warning CLEAN_TARGETS: $(CLEAN_TARGETS))
+#(warning INSTALL_TARGETS: $(INSTALL_TARGETS))
+#(warning CLEAN_DIST_TARGETS: $(CLEAN_DIST_TARGETS))
+
+$2: $(ALL_TARGETS)
+clean_$2: $(CLEAN_TARGETS)
+install_$2: $(INSTALL_TARGETS)
+clean_dist_$2: $(CLEAN_DIST_TARGETS)
+
+
 $3/object/%.o: $3/src/%.cpp | $3/object
 	$(AT)g++ $(CPPFLAGS) $$($$(patsubst %.o,%,$$(lastword $$(subst /, ,$$@)))_cflags) -I $3/include -c $$? -o $$@
 $3/object:
@@ -260,6 +317,10 @@ $3/lib/python: | $3/lib
 	$(AT)$(if $(wildcard $3/lib/python),,mkdir $3/lib/python)
 $3/lib/python/site-packages: | $3/lib/python
 	$(AT)$(if $(wildcard $3/lib/python/site-packages),,mkdir $3/lib/python/site-packages)
+$(eval ALL_TARGETS:=)
+$(eval CLEAN_TARGETS:=)
+$(eval INSTALL_TARGETS:=)
+$(eval CLEAN_DIST_TARGETS:=)
 endef
 
 #genModules: Includes the module Makefile with the list of libraries, executables, scripts, etc. to build. Calls makeModule.
@@ -275,7 +336,7 @@ $(eval MODRULE:=)
 $(eval MODDEP:=)
 $(eval $(call storeModuleVars,$2_$1))
 $(eval $(call cleanModuleIncludeVars))
-$(eval $(call makeModule,$1,$2_$1,$3/$1,$($2_$1_LIBRARIES),$($2_$1_EXECUTABLES),$($2_$1_SCRIPTS),$($2_$1_PY_MODULES),$($2_$1_PY_PACKAGES),$($2_$1_LIBRARIES_L),$($2_$1_EXECUTABLES_L),$($2_$1_SCRIPTS_L),$($2_$1_PY_MODULES_L),$($2_$1_PY_PACKAGES_L),$($2_$1_INCLUDES),$($2_$1_CONFIGS)))
+$(eval $(call makeModule,$1,$2_$1,$3/$1))
 $(eval $(call cleanModuleVars,$2_$1))
 endef
 
@@ -294,24 +355,27 @@ $(eval MODRULE:=)
 $(eval MODDEP:=)
 $(eval $(call storeModuleVars,$1))
 $(eval $(call cleanModuleIncludeVars))
-$(eval $(call makeModule,$1,$1,..,$($1_LIBRARIES),$($1_EXECUTABLES),$($1_SCRIPTS),$($1_PY_MODULES),$($1_PY_PACKAGES),$($1_LIBRARIES_L),$($1_EXECUTABLES_L),$($1_SCRIPTS_L),$($1_PY_MODULES_L),$($1_PY_PACKAGES_L),$($1_INCLUDES),$($1_CONFIGS)))
+$(eval $(call makeModule,$1,$1,..,))
 $(eval $(call cleanModuleVars,$1))
 endef
 
 #1: Module Target
 define storeModuleVars
-$(eval $1_LIBRARIES:=$(LIBRARIES))
-$(eval $1_EXECUTABLES:=$(EXECUTABLES))
-$(eval $1_SCRIPTS:=$(SCRIPTS))
-$(eval $1_PY_MODULES:=$(PY_MODULES))
-$(eval $1_PY_PACKAGES:=$(PY_PACKAGES))
-$(eval $1_LIBRARIES_L:=$(LIBRARIES_L))
-$(eval $1_EXECUTABLES_L:=$(EXECUTABLES_L))
-$(eval $1_SCRIPTS_L:=$(SCRIPTS_L))
-$(eval $1_PY_MODULES_L:=$(PY_MODULES_L))
-$(eval $1_PY_PACKAGES_L:=$(PY_PACKAGES_L))
-$(eval $1_INCLUDES:=$(INCLUDES))
-$(eval $1_CONFIGS:=$(CONFIGS))
+$(eval $1_LIBRARIES:=$(strip $(LIBRARIES)))
+$(eval $1_EXECUTABLES:=$(strip $(EXECUTABLES)))
+$(eval $1_SCRIPTS:=$(strip $(SCRIPTS)))
+$(eval $1_PY_SCRIPTS:=$(strip $(PY_SCRIPTS)))
+$(eval $1_PY_MODULES:=$(strip $(PY_MODULES)))
+$(eval $1_PY_PACKAGES:=$(strip $(PY_PACKAGES)))
+$(eval $1_LIBRARIES_L:=$(strip $(LIBRARIES_L)))
+$(eval $1_EXECUTABLES_L:=$(strip $(EXECUTABLES_L)))
+$(eval $1_SCRIPTS_L:=$(strip $(SCRIPTS_L)))
+$(eval $1_PY_SCRIPTS_L:=$(strip $(PY_SCRIPTS_L)))
+$(eval $1_PY_MODULES_L:=$(strip $(PY_MODULES_L)))
+$(eval $1_PY_PACKAGES_L:=$(strip $(PY_PACKAGES_L)))
+$(eval $1_INCLUDES:=$(strip $(INCLUDES)))
+$(eval $1_CONFIGS:=$(strip $(CONFIGS)))
+$(eval $1_INSTALL_FILES:=$(strip $(INSTALL_FILES)))
 endef
 
 #1: Module Target
@@ -319,30 +383,36 @@ define cleanModuleVars
 $(eval $1_LIBRARIES:=)
 $(eval $1_EXECUTABLES:=)
 $(eval $1_SCRIPTS:=)
+$(eval $1_PY_SCRIPTS:=)
 $(eval $1_PY_MODULES:=)
 $(eval $1_PY_PACKAGES:=)
 $(eval $1_LIBRARIES_L:=)
 $(eval $1_EXECUTABLES_L:=)
 $(eval $1_SCRIPTS_L:=)
+$(eval $1_PY_SCRIPTS_L:=)
 $(eval $1_PY_MODULES_L:=)
 $(eval $1_PY_PACKAGES_L:=)
 $(eval $1_INCLUDES:=)
 $(eval $1_CONFIGS:=)
+$(eval $1_INSTALL_FILES:=)
 endef
 
 define cleanModuleIncludeVars
 $(eval LIBRARIES:=)
 $(eval EXECUTABLES:=)
 $(eval SCRIPTS:=)
+$(eval PY_SCRIPTS:=)
 $(eval PY_MODULES:=)
 $(eval PY_PACKAGES:=)
 $(eval LIBRARIES_L:=)
 $(eval EXECUTABLES_L:=)
 $(eval SCRIPTS_L:=)
+$(eval PY_SCRIPTS_L:=)
 $(eval PY_MODULES_L:=)
 $(eval PY_PACKAGES_L:=)
 $(eval INCLUDES:=)
 $(eval CONFIGS:=)
+$(eval INSTALL_FILES:=)
 endef
 
 #genGroups: Includes the group Makefile with the list of subgroups and submodules. Calls makeGroup.

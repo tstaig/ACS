@@ -52,6 +52,7 @@ MANn = acsReplace.tcl
 MANl = $(SCRIPTS)
 
 INSTALL_FILES = ../include/acsMakefile       \
+		../include/acsNewMakefile.mk \
 		../include/acsMakefileDefinitions.mk \
 		../include/acsMakefileCore.mk \
                 ../include/Makefile_LCU.template \
@@ -82,5 +83,5 @@ man   : do_man
 
 do_acsPort:
 	-$(AT) chmod 666   ../include/acsPort.h; cp ../include/acsPort.h.UNSUPPORTED ../include/acsPort.h; chmod 666   ../include/acsPort.h
-	-$(AT) if [ `uname` = Linux ]; then cp ../include/acsPort.h.Linux ../include/acsPort.h; chmod 666 ../include/acsPort.h; fi
-	-$(AT) if [ `uname` = $(CYGWIN_VER) ]; then cp ../include/acsPort.h.Cygwin ../include/acsPort.h; chmod 666 ../include/acsPort.h; fi
+	-$(AT) if [ "`uname`" = "Linux" ]; then cp ../include/acsPort.h.Linux ../include/acsPort.h; chmod 666 ../include/acsPort.h; fi
+	-$(AT) if [ "`uname`" = "$(CYGWIN_VER)" ]; then cp ../include/acsPort.h.Cygwin ../include/acsPort.h; chmod 666 ../include/acsPort.h; fi
