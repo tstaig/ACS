@@ -1,45 +1,36 @@
 LIBRARIES:=
-EXECUTABLES:=
-SCRIPTS:= 	\
-                acsMakeTclScript	\
-		acsMakeTclLib           \
-		acsMan			\
-		doxygenize		\
-		acsChangeEnv            \
-		acsSwitchEnv            \
-		instAlmaTarball         \
-                JacPrep			\
-		acsCheckGroupPermissions\
-                cvs2cl 			\
-                acsUserConfig 		\
-		acsMakeCheckUnresolvedSymbols \
-		acsMakeJavaClasspath    \
-		acsMakeCopySources      \
-		acsMakeLogInstallation  \
-		acsMakeInstallFiles     \
-		searchFile
-PY_MODULES:= acsSearchPath
-PY_PACKAGES:=
 LIBRARIES_L:=
+EXECUTABLES:=
 EXECUTABLES_L:=
+SCRIPTS:= acsMakeTclScript	acsMakeTclLib acsMan doxygenize acsChangeEnv \
+		acsSwitchEnv instAlmaTarball JacPrep acsCheckGroupPermissions \
+      cvs2cl acsUserConfig acsMakeCheckUnresolvedSymbols acsMakeJavaClasspath \
+		acsMakeCopySources acsMakeLogInstallation acsMakeInstallFiles searchFile
 SCRIPTS_L:=
+PY_SCRIPTS:= acsConfigReport acsGetAllJars acsGetSpecificJars acsSearchPath
+PY_SCRIPTS_L:=
+PY_MODULES:= acsSearchPath
 PY_MODULES_L:=
+PY_PACKAGES:=
 PY_PACKAGES_L:=
+TCL_SCRIPTS:=acsReplace
+acsReplace_OBJECTS:=acsReplace
+acsReplace_TCLSH:=tcl
+TCL_SCRIPTS_L:=
 INCLUDES:=acsPort.h
 CONFIGS:=
+INSTALL_FILES:= ../include/acsMakefile ../include/acsNewMakefile.mk \
+      ../include/acsMakefileDefinitions.mk ../include/acsMakefileCore.mk \
+      ../include/Makefile_LCU.template ../include/Makefile_WS.template \
+      ../include/Makefile_PACKAGE.template $(wildcard ../config/acsPackageInfo*.rpmref) \
+		../config/XSDIncludeDependencies.xml
+
 
 ###############
 ###############
 #Unsupported!
 ###############
 ###############
-TCL_SCRIPTS  = acsReplace
-acsReplace_OBJECTS  = acsReplace
-acsReplace_TCLSH = tcl
-
-PY_SCRIPTS         = acsConfigReport \
-                     acsGetAllJars acsGetSpecificJars \
-                     acsSearchPath
 
 #PY_PACKAGES        =    acsConfigReportModule
 #PY_PACKAGES_L      =
@@ -50,16 +41,6 @@ MAN1 = acsMan acsConfigReport.py
 MAN5 = ../include/acsMakefile Makefile.doc
 MANn = acsReplace.tcl
 MANl = $(SCRIPTS)
-
-INSTALL_FILES = ../include/acsMakefile       \
-		../include/acsNewMakefile.mk \
-		../include/acsMakefileDefinitions.mk \
-		../include/acsMakefileCore.mk \
-                ../include/Makefile_LCU.template \
-                ../include/Makefile_WS.template \
-                ../include/Makefile_PACKAGE.template \
-                $(wildcard ../config/acsPackageInfo*.rpmref) \
-		../config/XSDIncludeDependencies.xml
 
 $(MODRULE)all: $(MODDEP) do_acsPort
 	$(AT)echo " . . . $(MODRULE)all done"
