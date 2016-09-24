@@ -14,6 +14,9 @@ GITSTATUS:=$(shell git status)
 GITDIFF:=$(shell git diff)
 
 AT:=@
+WISH:=/alma/ACS-2015.8/tcltk/bin/wish -f
+TCL_CHECKER:=/alma/ACS-2015.8/tcltk/bin/tclCheck
+PRJTOP:=$(INSTDIR)
 
 vpath  %.so ../lib $(INTROOT)/lib $(FIDEOS_HOME)/lib $(VLTGNUPATH)/lib
 
@@ -33,7 +36,7 @@ $(eval $1_libs:=$2)
 $(eval $1_objs:=$3)
 $(foreach obj,$3,$(eval $(obj)_cflags:=$4))
 $(eval $1_ldflags:=$5)
-$(eval $1_target:=$8_$1)
+$(eval $1_target:=$8_$1_lib)
 $(eval $1_path:=$9/lib/lib$1.so)
 .PHONY: $8_$1_lib
 $8_$1_lib: $9/lib/lib$1.so
@@ -73,6 +76,8 @@ endef
 #4: Module Full Name
 #5: Module Relative Path
 define makeScripts
+$(eval $1_target:=$4_$1_scr)
+$(eval $1_path:=$5/bin/$1)
 #ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
 $4_$1_scr: $5/bin/$1
 	$(AT)
@@ -83,7 +88,7 @@ $(eval $(call genTargets,$4_$1_scr,$5/bin/$1,bin,$1,$2,,,$4_$1_scr))
 endef
 
 #makePyScripts: Makes targets for Python scripts, both local and installable.
-#1: Script Name
+#1: Python Script Name
 #2: Bool to Install or Not
 #3: Module to Make
 #4: Module Full Name
@@ -97,6 +102,38 @@ $5/bin/$1: $5/src/$1.py | $5/bin
 	$(AT)chmod +x $5/bin/$1
 $(eval $(call genTargets,$4_$1_pys,$5/bin/$1,bin,$1,$2,,,$4_$1_pys))
 endef
+
+#makeTclScripts: Makes targets for TCL scripts, both local and installable.
+#1: TCL Script Name
+#2: Bool to Install or Not
+#3: Module to Make
+#4: Module Full Name
+#5: Module Relative Path
+define makeTclScripts
+#ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
+$4_$1_tsc: $5/bin/$1
+	$(AT)
+$5/bin/$1: $(addsuffix .tcl,$($1_OBJECTS)) $(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),) | $5/bin
+	$(AT)$(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),acsMakeTclScript) "$(TCL_CHECKER)" "$(WISH)" "$($1_TCLSH)" "$1" "$($1_OBJECTS)" "$($1_LIBS)"
+	$(AT)chmod +x $5/bin/$1
+$(eval $(call genTargets,$4_$1_tsc,$5/bin/$1,bin,$1,$2,,,$4_$1_tsc))
+endef
+
+#makeTclLibraries: Makes targets for TCL libraries, both local and installable.
+#1: TCL Library Name
+#2: Bool to Install or Not
+#3: Module to Make
+#4: Module Full Name
+#5: Module Relative Path
+define makeTclLibraries
+#ALL_TARGETS=$(ALL_TARGETS) $5/lib/$1
+$4_$1_tlb: $5/lib/$1.tcl
+	$(AT)
+$5/lib/$1.tcl: $(addsuffix .tcl,$($1_OBJECTS)) $(if $(acsMakeTclLib_target),$(acsMakeTclScript_path),) | $5/bin
+	$(AT)$(if $(acsMakeTclLib_target),$(acsMakeTclScript_path),acsMakeTclLib) "$(TCL_CHECKER)"  "$1" "$($1_OBJECTS)" 
+$(eval $(call genTargets,$4_$1_tlb,$5/lib/$1.tcl,lib,$1.tcl,$2,,,$4_$1_tlb))
+endef
+
 
 #genTargets: Generates clean, install and clean_dist targets.
 #1: Target Name
@@ -266,28 +303,36 @@ $(eval INSTALL_TARGETS:=)
 $(eval CLEAN_DIST_TARGETS:=)
 $(foreach lib,$($2_LIBRARIES),$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),true,$1,$2,$3)))
 $(eval $(call addTargets,$($2_LIBRARIES),$2,true,true,lib))
-$(foreach exe,$($2_EXECUTABLES),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_EXECUTABLES),$2,true,true,exe))
-$(foreach scr,$($2_SCRIPTS),$(eval $(call makeScripts,$(scr),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_SCRIPTS),$2,true,true,scr))
-$(foreach pys,$($2_PY_SCRIPTS),$(eval $(call makePyScripts,$(pys),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_PY_SCRIPTS),$2,true,true,pys))
-$(foreach pym,$($2_PY_MODULES),$(eval $(call makePyModules,$(pym),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_PY_MODULES),$2,true,true,pym))
-$(foreach pyp,$($2_PY_PACKAGES),$(eval $(call makePyPackages,$(pyp),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_PY_PACKAGES),$2,true,true,pyp))
 $(foreach lib,$($2_LIBRARIES_L),$(eval $(call makeLibraries,$(lib),$($(lib)_LIBS),$($(lib)_OBJECTS),$($(lib)_CFLAGS),$($(lib)_LDFLAGS),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_LIBRARIES_L),$2,true,false,lib))
+$(foreach exe,$($2_EXECUTABLES),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_EXECUTABLES),$2,true,true,exe))
 $(foreach exe,$($2_EXECUTABLES_L),$(eval $(call makeExecutables,$(exe),$($(exe)_LIBS),$($(exe)_OBJECTS),$($(exe)_CFLAGS),$($(exe)_LDFLAGS),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_EXECUTABLES_L),$2,true,false,exe))
+$(foreach scr,$($2_SCRIPTS),$(eval $(call makeScripts,$(scr),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_SCRIPTS),$2,true,true,scr))
 $(foreach scr,$($2_SCRIPTS_L),$(eval $(call makeScripts,$(scr),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_SCRIPTS_L),$2,true,false,scr))
+$(foreach pys,$($2_PY_SCRIPTS),$(eval $(call makePyScripts,$(pys),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_SCRIPTS),$2,true,true,pys))
 $(foreach pys,$($2_PY_SCRIPTS_L),$(eval $(call makePyScripts,$(pys),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_PY_SCRIPTS_L),$2,true,false,pys))
+$(foreach pym,$($2_PY_MODULES),$(eval $(call makePyModules,$(pym),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_MODULES),$2,true,true,pym))
 $(foreach pym,$($2_PY_MODULES_L),$(eval $(call makePyModules,$(pym),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_PY_MODULES_L),$2,true,false,pym))
+$(foreach pyp,$($2_PY_PACKAGES),$(eval $(call makePyPackages,$(pyp),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_PY_PACKAGES),$2,true,true,pyp))
 $(foreach pyp,$($2_PY_PACKAGES_L),$(eval $(call makePyPackages,$(pyp),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_PY_PACKAGES_L),$2,true,false,pyp))
+$(foreach tsc,$($2_TCL_SCRIPTS),$(eval $(call makeTclScripts,$(tsc),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_TCL_SCRIPTS),$2,true,true,tsc))
+$(foreach tsc,$($2_TCL_SCRIPTS_L),$(eval $(call makeTclScripts,$(tsc),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_TCL_SCRIPTS_L),$2,true,false,tsc))
+$(foreach tlb,$($2_TCL_LIBRARIES),$(eval $(call makeTclLibraries,$(tlb),true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_TCL_LIBRARIES),$2,true,true,tlb))
+$(foreach tlb,$($2_TCL_LIBRARIES_L),$(eval $(call makeTclLibraries,$(tlb),false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_TCL_LIBRARIES_L),$2,true,false,tlb))
 $(foreach inc,$($2_INCLUDES),$(eval $(call makeIncludes,$(inc),true,$1,$2,$3)))
 $(eval $(call addTargets,$($2_INCLUDES),$2,false,true,inc))
 $(foreach cfg,$($2_CONFIGS),$(eval $(call makeConfigs,$(cfg),true,$1,$2,$3)))
@@ -362,17 +407,19 @@ endef
 #1: Module Target
 define storeModuleVars
 $(eval $1_LIBRARIES:=$(strip $(LIBRARIES)))
-$(eval $1_EXECUTABLES:=$(strip $(EXECUTABLES)))
-$(eval $1_SCRIPTS:=$(strip $(SCRIPTS)))
-$(eval $1_PY_SCRIPTS:=$(strip $(PY_SCRIPTS)))
-$(eval $1_PY_MODULES:=$(strip $(PY_MODULES)))
-$(eval $1_PY_PACKAGES:=$(strip $(PY_PACKAGES)))
 $(eval $1_LIBRARIES_L:=$(strip $(LIBRARIES_L)))
+$(eval $1_EXECUTABLES:=$(strip $(EXECUTABLES)))
 $(eval $1_EXECUTABLES_L:=$(strip $(EXECUTABLES_L)))
+$(eval $1_SCRIPTS:=$(strip $(SCRIPTS)))
 $(eval $1_SCRIPTS_L:=$(strip $(SCRIPTS_L)))
+$(eval $1_PY_SCRIPTS:=$(strip $(PY_SCRIPTS)))
 $(eval $1_PY_SCRIPTS_L:=$(strip $(PY_SCRIPTS_L)))
+$(eval $1_PY_MODULES:=$(strip $(PY_MODULES)))
 $(eval $1_PY_MODULES_L:=$(strip $(PY_MODULES_L)))
+$(eval $1_PY_PACKAGES:=$(strip $(PY_PACKAGES)))
 $(eval $1_PY_PACKAGES_L:=$(strip $(PY_PACKAGES_L)))
+$(eval $1_TCL_SCRIPTS:=$(strip $(TCL_SCRIPTS)))
+$(eval $1_TCL_SCRIPTS_L:=$(strip $(TCL_SCRIPTS_L)))
 $(eval $1_INCLUDES:=$(strip $(INCLUDES)))
 $(eval $1_CONFIGS:=$(strip $(CONFIGS)))
 $(eval $1_INSTALL_FILES:=$(strip $(INSTALL_FILES)))
@@ -381,17 +428,19 @@ endef
 #1: Module Target
 define cleanModuleVars
 $(eval $1_LIBRARIES:=)
-$(eval $1_EXECUTABLES:=)
-$(eval $1_SCRIPTS:=)
-$(eval $1_PY_SCRIPTS:=)
-$(eval $1_PY_MODULES:=)
-$(eval $1_PY_PACKAGES:=)
 $(eval $1_LIBRARIES_L:=)
+$(eval $1_EXECUTABLES:=)
 $(eval $1_EXECUTABLES_L:=)
+$(eval $1_SCRIPTS:=)
 $(eval $1_SCRIPTS_L:=)
+$(eval $1_PY_SCRIPTS:=)
 $(eval $1_PY_SCRIPTS_L:=)
+$(eval $1_PY_MODULES:=)
 $(eval $1_PY_MODULES_L:=)
+$(eval $1_PY_PACKAGES:=)
 $(eval $1_PY_PACKAGES_L:=)
+$(eval $1_TCL_SCRIPTS:=)
+$(eval $1_TCL_SCRIPTS_L:=)
 $(eval $1_INCLUDES:=)
 $(eval $1_CONFIGS:=)
 $(eval $1_INSTALL_FILES:=)
@@ -399,17 +448,19 @@ endef
 
 define cleanModuleIncludeVars
 $(eval LIBRARIES:=)
-$(eval EXECUTABLES:=)
-$(eval SCRIPTS:=)
-$(eval PY_SCRIPTS:=)
-$(eval PY_MODULES:=)
-$(eval PY_PACKAGES:=)
 $(eval LIBRARIES_L:=)
+$(eval EXECUTABLES:=)
 $(eval EXECUTABLES_L:=)
+$(eval SCRIPTS:=)
 $(eval SCRIPTS_L:=)
+$(eval PY_SCRIPTS:=)
 $(eval PY_SCRIPTS_L:=)
+$(eval PY_MODULES:=)
 $(eval PY_MODULES_L:=)
+$(eval PY_PACKAGES:=)
 $(eval PY_PACKAGES_L:=)
+$(eval TCL_SCRIPTS:=)
+$(eval TCL_SCRIPTS_L:=)
 $(eval INCLUDES:=)
 $(eval CONFIGS:=)
 $(eval INSTALL_FILES:=)
