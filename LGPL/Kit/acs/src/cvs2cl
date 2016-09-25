@@ -23,6 +23,32 @@ exec perl -w -x $0 ${1+"$@"} # -*- mode: perl; perl-indent-level: 2; -*-
 # License along with this library; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 #*******************************************************************************
+#-----------------------------------------------------------------------
+#
+#   NAME
+#   cvs2cl -
+#
+#   DESCRIPTION
+#
+#   USAGE
+#    See the "$usage = ..." section below.
+#
+#   AUTHOR
+#
+#   ENVIRONMENT
+#
+#   CAUTION
+#
+#   EXAMPLES
+#    To be inserted.
+#
+#   SEE ALSO
+#
+#   BUGS
+#    Probably present.  Squish them as you find them.
+#
+#   DEPENDENCIES
+#-----------------------------------------------------------------------
 
 
 ##############################################################

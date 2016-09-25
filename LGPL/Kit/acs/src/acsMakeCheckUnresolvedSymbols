@@ -24,7 +24,8 @@
 #-----------------------------------------------------------------------
 #
 #   NAME
-#    CheckUnresolvedSymbols
+#   acsMakeCheckUnresolvedSymbols - Checks a shared library for unresolved
+#   symbols.
 #
 #   DESCRIPTION
 #    Checks the specified shared library for unresolved symbols

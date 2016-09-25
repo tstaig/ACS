@@ -23,7 +23,7 @@
 
 #************************************************************************
 #   NAME 
-#   JacPrep 
+#   JacPrep - preprocessses .idl files preserving #include and #pragma
 # 
 #   SYNOPSIS
 #   JacPrep input_file.idl [idl_paths and options] 
