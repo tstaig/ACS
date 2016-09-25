@@ -2,8 +2,10 @@ DIST:=$(shell lsb_release -i |awk '{print $$3}')
 ARCH:=$(if $(findstring $(DIST),Fedora),-m64,-m32)
 VLTFLAG:=$(if $(findstring $(DIST),Fedora),,-DVLT)
 VLTGNUPATH:=$(if $(findstring $(DIST),Fedora),,/diska/vlt/VLT2014/gnu)
-STDCPP:=$(if $(findstring $(DIST),Fedora),-std=c++11,-std=c++0x)
-CPPFLAGS:=$(STDCPP) -fPIC -ggdb $(ARCH) $(VLTFLAG) -I../include $(if $(VLTGNUPATH),-I$(VLTGNUPATH)/include,)
+STDCXX:=$(if $(findstring $(DIST),Fedora),-std=c++11,-std=c++0x)
+STDC:=$(if $(findstring $(DIST),Fedora),-std=c11,-std=c++0x)
+CXXFLAGS:=$(STDCXX) -fPIC -ggdb $(ARCH) $(VLTFLAG) -I../include $(if $(VLTGNUPATH),-I$(VLTGNUPATH)/include,)
+CFLAGS:=$(STDC) -fPIC -ggdb $(ARCH) $(VLTFLAG) -I../include -I$(FIDEOS_HOME)/current/include $(if $(VLTGNUPATH),-I$(VLTGNUPATH)/include,)
 LDFLAGS:=-L. -L../lib $(if $(VLTGNUPATH),-L$(VLTGNUPATH)/lib,) $(ARCH)
 
 BRANCH:=$(shell git rev-parse --abbrev-ref HEAD)
@@ -13,10 +15,15 @@ INSTDIR:=$(if $(wildcard $(INTROOT)),$(INTROOT),$(if $(wildcard $(FIDEOS_HOME)),
 GITSTATUS:=$(shell git status)
 GITDIFF:=$(shell git diff)
 
-AT:=@
+#AT:=@
+AT:=
+#OUTPUT:= > /dev/null
+OUTPUT:=
+#OUTPUT:= > /dev/null 2>&1
 WISH:=/alma/ACS-2015.8/tcltk/bin/wish -f
 TCL_CHECKER:=/alma/ACS-2015.8/tcltk/bin/tclCheck
 PRJTOP:=$(INSTDIR)
+LASTCHANGE = "$(MODVERSION) $(shell date '+%d/%m/%y-%H:%M')"
 
 vpath  %.so ../lib $(INTROOT)/lib $(FIDEOS_HOME)/lib $(VLTGNUPATH)/lib
 
@@ -60,6 +67,8 @@ endef
 define makeExecutables
 #ALL_TARGETS=$(ALL_TARGETS) $9/bin/$1
 $(foreach obj,$3,$(eval $(obj)_cflags:=$4))
+$(eval $1_target:=$8_$1_exe)
+$(eval $1_path:=$9/bin/$1)
 .PHONY: $7_$1_exe
 $8_$1_exe: $9/bin/$1
 	$(AT)
@@ -101,6 +110,21 @@ $5/bin/$1: $5/src/$1.py | $5/bin
 	$(AT)cp $5/src/$1.py $5/bin/$1
 	$(AT)chmod +x $5/bin/$1
 $(eval $(call genTargets,$4_$1_pys,$5/bin/$1,bin,$1,$2,,,$4_$1_pys))
+$(eval $(call makePyDoc,$1,$2,$3,$4,$5))
+#$4_$1_pys_doc: $5/doc/api/html/python/scripts/$1.html
+#	$(AT)
+#$5/doc/api/html/python/scripts/$1.html: $5/src/$1.py | $5/doc/api/html/python/scripts
+#	$(AT)PYTHONPATH=$(PYTHONPATH):$5/src pydoc -w $1
+#	$(AT)mv $1.html $5/doc/api/html/python/scripts/$1.html
+endef
+
+#1: Python File Name
+#2: Bool to Install or Not
+#3: Module to Make
+#4: Module Full Name
+#5: Module Relative Path
+#7: Suffix
+define makePyDoc
 endef
 
 #makeTclScripts: Makes targets for TCL scripts, both local and installable.
@@ -113,8 +137,8 @@ define makeTclScripts
 #ALL_TARGETS=$(ALL_TARGETS) $5/bin/$1
 $4_$1_tsc: $5/bin/$1
 	$(AT)
-$5/bin/$1: $(addsuffix .tcl,$($1_OBJECTS)) $(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),) | $5/bin
-	$(AT)$(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),acsMakeTclScript) "$(TCL_CHECKER)" "$(WISH)" "$($1_TCLSH)" "$1" "$($1_OBJECTS)" "$($1_LIBS)"
+$5/bin/$1: $(addprefix $5/src/,$(addsuffix .tcl,$($1_OBJECTS))) $(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),) | $5/bin
+	$(AT)$(if $(acsMakeTclScript_target),$(acsMakeTclScript_path),acsMakeTclScript) "$(TCL_CHECKER)" "$(WISH)" "$($1_TCLSH)" "$1" "$(addprefix $5/src/,$($1_OBJECTS))" "$($1_LIBS)" $(OUTPUT)
 	$(AT)chmod +x $5/bin/$1
 $(eval $(call genTargets,$4_$1_tsc,$5/bin/$1,bin,$1,$2,,,$4_$1_tsc))
 endef
@@ -130,7 +154,7 @@ define makeTclLibraries
 $4_$1_tlb: $5/lib/$1.tcl
 	$(AT)
 $5/lib/$1.tcl: $(addsuffix .tcl,$($1_OBJECTS)) $(if $(acsMakeTclLib_target),$(acsMakeTclScript_path),) | $5/bin
-	$(AT)$(if $(acsMakeTclLib_target),$(acsMakeTclScript_path),acsMakeTclLib) "$(TCL_CHECKER)"  "$1" "$($1_OBJECTS)" 
+	$(AT)$(if $(acsMakeTclLib_target),$(acsMakeTclScript_path),acsMakeTclLib) "$(TCL_CHECKER)"  "$1" "$($1_OBJECTS)" $(OUTPUT)
 $(eval $(call genTargets,$4_$1_tlb,$5/lib/$1.tcl,lib,$1.tcl,$2,,,$4_$1_tlb))
 endef
 
@@ -204,11 +228,16 @@ define makePyModules
 $4_$1_pym: $5/lib/python/site-packages/$1.pyc
 	$(AT)
 $5/lib/python/site-packages/$1.pyc: $5/lib/python/site-packages/$1.py
-	$(AT)python -m compileall $5/lib/python/site-packages/$1.py
+	$(AT)python -m compileall $5/lib/python/site-packages/$1.py $(OUTPUT)
 $5/lib/python/site-packages/$1.py: $5/src/$1.py | $5/lib/python/site-packages
 	$(AT)cp $5/src/$1.py $5/lib/python/site-packages/$1.py
 $(eval $(call genTargets,$4_$1_pym,$5/lib/python/site-packages/$1.py,lib/python/site-packages,$1.py,$2,$4_$1_pym_pyc,true,$4_$1_pym))
 $(eval $(call genTargets,$4_$1_pym_pyc,$5/lib/python/site-packages/$1.pyc,lib/python/site-packages,$1.pyc,$2))
+#$4_$1_pym_doc: $5/doc/api/html/python/modules/$1.html
+#	$(AT)
+#$5/doc/api/html/python/modules/$1.html: $5/src/$1.py | $5/doc/api/html/python/modules
+#	$(AT)PYTHONPATH=$(PYTHONPATH):$5/src pydoc -w $1
+#	$(AT)mv $1.html $5/doc/api/html/python/modules/$1.html
 endef
 
 #1: Python Package Name
@@ -220,7 +249,7 @@ define makePyPackages
 $4_$1_pyp: $(patsubst %.py,%.pyc,$(subst $5/src/$1,$5/lib/python/site-packages/$1,$(wildcard $5/src/$1/*.py)))
 	$(AT)
 $5/lib/python/site-packages/$1/%.pyc: $5/lib/python/site-packages/$1/%.py
-	$(AT)python -m compileall $$?
+	$(AT)python -m compileall $$? $(OUTPUT)
 $5/lib/python/site-packages/$1/%.py: $5/src/$1/%.py | $5/lib/python/site-packages/$1
 	$(AT)cp $$? $$@
 $5/lib/python/site-packages/$1: $5/src/$1 | $5/lib/python/site-packages
@@ -235,6 +264,11 @@ install_$4_$1_pyp: $4_$1 | $(INSTDIR)/lib/python/site-packages/$1 $(foreach py,$
 $(INSTDIR)/lib/python/site-packages/$1: | $(INSTDIR)/lib/python/site-packages
 	$(AT)$(if $(wildcard $(INSTDIR)/lib/python/site-packages/$1),,mkdir $(INSTDIR)/lib/python/site-packages/$1)
 $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),$(eval $(call genTargets,$4_$1_$(subst $1/,_,$(py)),$5/lib/python/site-packages/$(py),lib/python/site-packages,$(py),$2)))
+#$4_$1_pyp_doc: $5/doc/api/html/python/packages/$1.html
+#	$(AT)
+#$5/doc/api/html/python/packages/$1.html: $5/src/$1 | $5/doc/api/html/python/packages
+#	$(AT)PYTHONPATH=$(PYTHONPATH):$5/src pydoc -w $1
+#	$(AT)mv $1.html $5/doc/api/html/python/packages/$1.html
 endef
 
 #1: Include File Name
@@ -259,7 +293,6 @@ endef
 define makeInstallFiles
 $(eval ins_path:=$(patsubst ../%/,%,$(dir $1)))
 $(eval ins_file:=$(notdir $1))
-$(warning XXXXXXXXXXXXXXXXXX: $4_$1_ins)
 $4_$1_ins: $5/$(ins_path)/$(ins_file)
 	$(AT)
 clean_$4_$1_ins: $5/$(ins_path)/$(ins_file)
@@ -282,14 +315,46 @@ $(eval $(call installFiles,$4_$1_cfg,$5/config/$1,config,$1))
 $(eval $(call cleanDistFiles,$4_$1_cfg,$5/config/$1,config,$1))
 endef
 
+#1: Man Section Name
+#2: List of Man Section Docs
+#3: Bool to Install or Not
+#4: Module to Make
+#5: Module Full Name
+#6: Module Relative Path
+define makeManSections
+$5_$1_man: $(foreach doc,$2,$5_$1_$(doc)_doc)| $6/man/man$1
+	$(AT)
+$6/man/man$1: | $6/man
+	$(AT)$(if $(wildcard $6/man/man$1),,mkdir $6/man/man$1)
+$(foreach doc,$2,$(eval $(call makeManSection,$(doc),$1,$3,$4,$5,$6)))
+$(eval $(call genTargets,$5_$1_man,$6/man/man$1,man,man$1,$3,$(foreach doc,$2,$5_$1_$(doc)_doc),true,$5_$1_man))
+endef
+
+docDoManPages_target=yes
+docDoManPages_path=doc/bin/docDoManPages
+#1: Man Section Doc
+#2: Man Section
+#3: Bool to Install or Not
+#4: Module to Make
+#5: Module Full Name
+#6: Module Relative Path
+define makeManSection
+$5_$2_$1_doc: $6/man/man$2/$(notdir $(basename $1)).$2
+	$(AT)
+$6/man/man$2/$(notdir $(basename $1)).$2: $6/src/$1 $(if $(docDoManPages_target),$(docDoManPages_path),) | $6/doc $6/man/man$2
+	$(AT)$(if $(docDoManPages_target),$(docDoManPages_path),docDoManPages) $6/src/$1 $2 $(LASTCHANGE) $(OUTPUT)
+$(eval $(call genTargets,$5_$2_$1_doc,$6/man/man$2/$(notdir $(basename $1)).$2,man/man$2,$(notdir $(basename $1)).$2,$3,$(foreach ext,inc mif text,$5_$2_$1_doc_$(ext)),,$5_$2_$1_doc))
+$(foreach ext,inc mif text,$(eval $(call genTargets,$5_$2_$1_doc_$(ext),$6/doc/$(notdir $(basename $1)).$(ext),doc,$(notdir $(basename $1)).$(ext),$3,,,$5_$2_$1_doc_$(ext))))
+endef
+
 #1: List of targets
 #2: Module Full Name
 #3: All/Clean
 #4: Install/Clean_Dist
 #5: Suffix for targets
 define addTargets
-$(if $3,$(if $1,$(eval ALL_TARGETS+=$(addsuffix _$5,$(addprefix $2_,$1)))$(eval CLEAN_TARGETS+=$(addsuffix _$5,$(addprefix clean_$2_,$1))),),)
-$(if $4,$(if $1,$(eval INSTALL_TARGETS+=$(addsuffix _$5,$(addprefix install_$2_,$1)))$(eval CLEAN_DIST_TARGETS+=$(addsuffix _$5,$(addprefix clean_dist_$2_,$1))),),)
+$(if $(findstring true,$3),$(if $1,$(eval ALL_TARGETS+=$(addsuffix _$5,$(addprefix $2_,$1)))$(eval CLEAN_TARGETS+=$(addsuffix _$5,$(addprefix clean_$2_,$1))),),)
+$(if $(findstring true,$4),$(if $1,$(eval INSTALL_TARGETS+=$(addsuffix _$5,$(addprefix install_$2_,$1)))$(eval CLEAN_DIST_TARGETS+=$(addsuffix _$5,$(addprefix clean_dist_$2_,$1))),),)
 endef
 
 #makeModule: Iterates over the lists of targets to make local and installable libraries, executables, scripts, etc. to create build, install and clean targets.
@@ -339,6 +404,10 @@ $(foreach cfg,$($2_CONFIGS),$(eval $(call makeConfigs,$(cfg),true,$1,$2,$3)))
 $(eval $(call addTargets,$($2_CONFIGS),$2,false,true,cfg))
 $(foreach ins,$($2_INSTALL_FILES),$(eval $(call makeInstallFiles,$(ins),true,$1,$2,$3)))
 $(eval $(call addTargets,$($2_INSTALL_FILES),$2,false,true,ins))
+#(foreach man,#(#2_MANSECTIONS),#(eval #(call makeManSections,#(man),#(#2_MAN#(man)),true,#1,#2,#3)))
+#(eval #(call addTargets,#(#2_MANSECTIONS),#2,true,true,man))
+#(eval #(call makeManSections,l,#(#2_MANl),false,#1,#2,#3))
+#(eval #(call addTargets,l,#2,true,false,man))
 #(warning ALL_TARGETS: $(ALL_TARGETS))
 #(warning CLEAN_TARGETS: $(CLEAN_TARGETS))
 #(warning INSTALL_TARGETS: $(INSTALL_TARGETS))
@@ -351,7 +420,9 @@ clean_dist_$2: $(CLEAN_DIST_TARGETS)
 
 
 $3/object/%.o: $3/src/%.cpp | $3/object
-	$(AT)g++ $(CPPFLAGS) $$($$(patsubst %.o,%,$$(lastword $$(subst /, ,$$@)))_cflags) -I $3/include -c $$? -o $$@
+	$(AT)g++ $(CXXFLAGS) $$($$(patsubst %.o,%,$$(lastword $$(subst /, ,$$@)))_cflags) -I $3/include -c $$? -o $$@
+$3/object/%.o: $3/src/%.c | $3/object
+	$(AT)gcc $(CFLAGS) $$($$(patsubst %.o,%,$$(lastword $$(subst /, ,$$@)))_cflags) -I $3/include -c $$? -o $$@
 $3/object:
 	$(AT)$(if $(wildcard $3/object),,mkdir $3/object)
 $3/bin:
@@ -362,6 +433,24 @@ $3/lib/python: | $3/lib
 	$(AT)$(if $(wildcard $3/lib/python),,mkdir $3/lib/python)
 $3/lib/python/site-packages: | $3/lib/python
 	$(AT)$(if $(wildcard $3/lib/python/site-packages),,mkdir $3/lib/python/site-packages)
+$3/man:
+	$(AT)$(if $(wildcard $3/man),,mkdir $3/man)
+$3/doc:
+	$(AT)$(if $(wildcard $3/doc),,mkdir $3/doc)
+$3/doc/api: | $3/doc
+	$(AT)$(if $(wildcard $3/doc/api),,mkdir $3/doc/api)
+$3/doc/api/html: | $3/doc/api
+	$(AT)$(if $(wildcard $3/doc/api/html),,mkdir $3/doc/api/html)
+$3/doc/api/html/python: | $3/doc/api/html
+	$(AT)$(if $(wildcard $3/doc/api/html/python),,mkdir $3/doc/api/html/python)
+$3/doc/api/html/python/scripts: | $3/doc/api/html/python
+	$(AT)$(if $(wildcard $3/doc/api/html/python/scripts),,mkdir $3/doc/api/html/python/scripts)
+$3/doc/api/html/python/modules: | $3/doc/api/html/python
+	$(AT)$(if $(wildcard $3/doc/api/html/python/modules),,mkdir $3/doc/api/html/python/modules)
+$3/doc/api/html/python/packages: | $3/doc/api/html/python
+	$(AT)$(if $(wildcard $3/doc/api/html/python/packages),,mkdir $3/doc/api/html/python/packages)
+$3/man/man%: | $3/man
+	$(AT)$$(if $$(wildcard $3/man/man$$*),,mkdir $3/man/man$$*)
 $(eval ALL_TARGETS:=)
 $(eval CLEAN_TARGETS:=)
 $(eval INSTALL_TARGETS:=)
@@ -376,9 +465,11 @@ endef
 define genModules
 $(eval MODRULE:=$2_$1_)
 $(eval MODDEP:=$2_$1)
+$(eval MODPATH:=$3/$1)
 $(eval include $3/$1/src/module.mk)
 $(eval MODRULE:=)
 $(eval MODDEP:=)
+$(eval MODPATH:=)
 $(eval $(call storeModuleVars,$2_$1))
 $(eval $(call cleanModuleIncludeVars))
 $(eval $(call makeModule,$1,$2_$1,$3/$1))
@@ -391,6 +482,7 @@ endef
 define genModule
 $(eval MODRULE:=$1_)
 $(eval MODDEP:=$1)
+$(eval MODPATH:=..)
 $(eval include module.mk)
 all: $1_all
 install: $1_install
@@ -398,6 +490,7 @@ clean: $1_clean
 clean_dist: $1_clean_dist
 $(eval MODRULE:=)
 $(eval MODDEP:=)
+$(eval MODPATH:=)
 $(eval $(call storeModuleVars,$1))
 $(eval $(call cleanModuleIncludeVars))
 $(eval $(call makeModule,$1,$1,..,))
@@ -423,6 +516,9 @@ $(eval $1_TCL_SCRIPTS_L:=$(strip $(TCL_SCRIPTS_L)))
 $(eval $1_INCLUDES:=$(strip $(INCLUDES)))
 $(eval $1_CONFIGS:=$(strip $(CONFIGS)))
 $(eval $1_INSTALL_FILES:=$(strip $(INSTALL_FILES)))
+$(eval $1_MANSECTIONS:=$(strip $(MANSECTIONS)))
+$(foreach man,$($1_MANSECTIONS),$(eval $1_MAN$(man):=$(strip $(MAN$(man)))))
+$(eval $1_MANl:=$(strip $(MANl)))
 endef
 
 #1: Module Target
@@ -444,6 +540,9 @@ $(eval $1_TCL_SCRIPTS_L:=)
 $(eval $1_INCLUDES:=)
 $(eval $1_CONFIGS:=)
 $(eval $1_INSTALL_FILES:=)
+$(foreach man,$($1_MANSECTIONS),$(eval $1_MAN$(man):=))
+$(eval $1_MANl:=)
+$(eval $1_MANSECTIONS:=)
 endef
 
 define cleanModuleIncludeVars
@@ -464,6 +563,9 @@ $(eval TCL_SCRIPTS_L:=)
 $(eval INCLUDES:=)
 $(eval CONFIGS:=)
 $(eval INSTALL_FILES:=)
+$(foreach man,$(MANSECTIONS),$(eval MAN$(man):=))
+$(eval MANl:=)
+$(eval MANSECTIONS:=)
 endef
 
 #genGroups: Includes the group Makefile with the list of subgroups and submodules. Calls makeGroup.
@@ -591,3 +693,7 @@ $(INSTDIR)/config: | $(INSTDIR)
 	$(AT)$(if $(wildcard $(INSTDIR)/config),,mkdir $(INSTDIR)/config)
 $(INSTDIR)/include: | $(INSTDIR)
 	$(AT)$(if $(wildcard $(INSTDIR)/include),,mkdir $(INSTDIR)/include)
+$(INSTDIR)/man: | $(INSTDIR)
+	$(AT)$(if $(wildcard $(INSTDIR)/man),,mkdir $(INSTDIR)/man)
+$(INSTDIR)/man/man%: | $(INSTDIR)/man
+	$(AT)$(if $(wildcard $(INSTDIR)/man/man$*),,mkdir $(INSTDIR)/man/man$*)
