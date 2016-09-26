@@ -279,17 +279,17 @@ endef
 #5: Module Full Name
 #6: Module Relative Path
 define makeJarFiles
-$1_javas=$(foreach dir,$(strip $($1_DIRS)),$$(if $$(wildcard $6/src/$(dir)),$$(strip $$(shell find $6/src/$(dir) -name \*.java -type f ! -path '*/CVS/*' ! -path '*/.svn/*' | sed 's/^$6\/src\///' | tr '\n' ' ')),))
+$1_javas=$(foreach dir,$(strip $($1_DIRS)),$$(if $$(wildcard $6/src/$(dir)),$$(strip $$(shell find $6/src/$(dir) -name \*.java -type f ! -path '*/CVS/*' ! -path '*/.svn/*' | sed 's/^$(subst .,\.,$(subst /,\/,$6/src/))//' | tr '\n' ' ')),))
 $(eval $1_jar_path:=$(if $(findstring $2,true),lib/ACScomponents,lib))
 $5_$1_jar: $6/$($1_jar_path)/$1.jar
 	$(AT)
-$6/$($1_jar_path)/$1.jar: $$($1_javas) $(addprefix $6/src/,$(strip $($1_DIRS))) | $6/object/$1/src $6/$($1_jar_path)
+$6/$($1_jar_path)/$1.jar: $(addprefix $6/src/,$$($1_javas)) $(addprefix $6/src/,$(strip $($1_DIRS))) | $6/object/$1/src $6/$($1_jar_path)
 	$(AT)echo $1-ACS-Generated-FromModule: "$(if $(wildcard $6/src/.svn),$(shell svn info . |grep URL| awk '{print $$$$2}'),$(PWD))" > $6/object/$1/$1.manifest
-	$(AT)javac -classpath $(shell acsMakeJavaClasspath$(if $(findstring $($1_ENDORSED),on), -endorsed,)) -d $6/object/$1/src $$(filter %.java,$$($1_javas))
+	$(AT)javac -classpath $(shell acsMakeJavaClasspath$(if $(findstring $($1_ENDORSED),on), -endorsed,)) -d $6/object/$1/src $$(filter %.java,$$(addprefix $6/src/,$$($1_javas)))
 	$(AT)jar $(if $(wildcard $6/$($1_jar_path)/$1.jar),uf,cf) $6/$($1_jar_path)/$1.jar -C $6/object/$1/src $(strip $($1_DIRS))
 	$(AT)jar ufm $6/$($1_jar_path)/$1.jar $6/object/$1/$1.manifest
 	$(AT)$(if $(strip $($1_EXTRAS)),jar uf $6/$($1_jar_path)/$1.jar $(addprefix -C $6/src ,$(strip $($1_EXTRAS))),)
-	$(AT)$(if $(findstring $(strip on),on),jar uf $6/$($1_jar_path)/$1.jar $(addprefix -C $6/src ,$$($1_javas)))
+	$(AT)$(if $(findstring $(strip on),on),jar uf $6/$($1_jar_path)/$1.jar $$(addprefix -C $6/src ,$$($1_javas)))
 $6/object/$1/src: | $6/object/$1
 	$(AT)$(if $(wildcard $6/object/$1/src),,mkdir $6/object/$1/src)
 $6/object/$1: | $6/object
