@@ -15,15 +15,16 @@ INSTDIR:=$(if $(wildcard $(INTROOT)),$(INTROOT),$(if $(wildcard $(FIDEOS_HOME)),
 GITSTATUS:=$(shell git status)
 GITDIFF:=$(shell git diff)
 
-#AT:=@
-AT:=
-#OUTPUT:= > /dev/null
-OUTPUT:=
+AT:=@
+#AT:=
+OUTPUT:= > /dev/null
+#OUTPUT:=
 #OUTPUT:= > /dev/null 2>&1
 WISH:=/alma/ACS-2015.8/tcltk/bin/wish -f
 TCL_CHECKER:=/alma/ACS-2015.8/tcltk/bin/tclCheck
 PRJTOP:=$(INSTDIR)
 LASTCHANGE = "$(MODVERSION) $(shell date '+%d/%m/%y-%H:%M')"
+INSTALL_ROOT:=$(INSTDIR)
 
 vpath  %.so ../lib $(INTROOT)/lib $(FIDEOS_HOME)/lib $(VLTGNUPATH)/lib
 
@@ -272,6 +273,32 @@ $(foreach py,$(subst $5/src/,,$(wildcard $5/src/$1/*.py)),$(eval $(call genTarge
 endef
 
 #1: Include File Name
+#2: Bool to Mark if it is a Component Jar or Not
+#3: Bool to Install or Not
+#4: Module to Make
+#5: Module Full Name
+#6: Module Relative Path
+define makeJarFiles
+$1_javas=$(foreach dir,$(strip $($1_DIRS)),$$(if $$(wildcard $6/src/$(dir)),$$(strip $$(shell find $6/src/$(dir) -name \*.java -type f ! -path '*/CVS/*' ! -path '*/.svn/*' | sed 's/^$6\/src\///' | tr '\n' ' ')),))
+$(eval $1_jar_path:=$(if $(findstring $2,true),lib/ACScomponents,lib))
+$5_$1_jar: $6/$($1_jar_path)/$1.jar
+	$(AT)
+$6/$($1_jar_path)/$1.jar: $$($1_javas) $(addprefix $6/src/,$(strip $($1_DIRS))) | $6/object/$1/src $6/$($1_jar_path)
+	$(AT)echo $1-ACS-Generated-FromModule: "$(if $(wildcard $6/src/.svn),$(shell svn info . |grep URL| awk '{print $$$$2}'),$(PWD))" > $6/object/$1/$1.manifest
+	$(AT)javac -classpath $(shell acsMakeJavaClasspath$(if $(findstring $($1_ENDORSED),on), -endorsed,)) -d $6/object/$1/src $$(filter %.java,$$($1_javas))
+	$(AT)jar $(if $(wildcard $6/$($1_jar_path)/$1.jar),uf,cf) $6/$($1_jar_path)/$1.jar -C $6/object/$1/src $(strip $($1_DIRS))
+	$(AT)jar ufm $6/$($1_jar_path)/$1.jar $6/object/$1/$1.manifest
+	$(AT)$(if $(strip $($1_EXTRAS)),jar uf $6/$($1_jar_path)/$1.jar $(addprefix -C $6/src ,$(strip $($1_EXTRAS))),)
+	$(AT)$(if $(findstring $(strip on),on),jar uf $6/$($1_jar_path)/$1.jar $(addprefix -C $6/src ,$$($1_javas)))
+$6/object/$1/src: | $6/object/$1
+	$(AT)$(if $(wildcard $6/object/$1/src),,mkdir $6/object/$1/src)
+$6/object/$1: | $6/object
+	$(AT)$(if $(wildcard $6/object/$1),,mkdir $6/object/$1)
+$(eval $(call genTargets,$5_$1_jar,$6/$($1_jar_path)/$1.jar,$($1_jar_path),$1.jar,$3,$5_$1_jar_dir,false,$5_$1_jar))
+$(eval $(call cleanFiles,$5_$1_jar_dir,$6/object/$1,object,$1))
+endef
+
+#1: Include File Name
 #2: Bool to Install or Not
 #3: Module to Make
 #4: Module Full Name
@@ -390,14 +417,22 @@ $(foreach pyp,$($2_PY_PACKAGES),$(eval $(call makePyPackages,$(pyp),true,$1,$2,$
 $(eval $(call addTargets,$($2_PY_PACKAGES),$2,true,true,pyp))
 $(foreach pyp,$($2_PY_PACKAGES_L),$(eval $(call makePyPackages,$(pyp),false,$1,$2,$3)))
 $(eval $(call addTargets,$($2_PY_PACKAGES_L),$2,true,false,pyp))
-$(foreach tsc,$($2_TCL_SCRIPTS),$(eval $(call makeTclScripts,$(tsc),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_TCL_SCRIPTS),$2,true,true,tsc))
-$(foreach tsc,$($2_TCL_SCRIPTS_L),$(eval $(call makeTclScripts,$(tsc),false,$1,$2,$3)))
-$(eval $(call addTargets,$($2_TCL_SCRIPTS_L),$2,true,false,tsc))
-$(foreach tlb,$($2_TCL_LIBRARIES),$(eval $(call makeTclLibraries,$(tlb),true,$1,$2,$3)))
-$(eval $(call addTargets,$($2_TCL_LIBRARIES),$2,true,true,tlb))
-$(foreach tlb,$($2_TCL_LIBRARIES_L),$(eval $(call makeTclLibraries,$(tlb),false,$1,$2,$3)))
-$(eval $(call addTargets,$($2_TCL_LIBRARIES_L),$2,true,false,tlb))
+$(foreach jar,$($2_JARFILES),$(eval $(call makeJarFiles,$(jar),false,true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_JARFILES),$2,true,true,jar))
+$(foreach jar,$($2_JARFILES_L),$(eval $(call makeJarFiles,$(jar),false,false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_JARFILES_L),$2,true,false,jar))
+$(foreach jar,$($2_COMPONENTS_JARFILES),$(eval $(call makeJarFiles,$(jar),true,true,$1,$2,$3)))
+$(eval $(call addTargets,$($2_COMPONENTS_JARFILES),$2,true,true,jar))
+$(foreach jar,$($2_COMPONENTS_JARFILES_L),$(eval $(call makeJarFiles,$(jar),true,false,$1,$2,$3)))
+$(eval $(call addTargets,$($2_COMPONENTS_JARFILES_L),$2,true,false,jar))
+#(foreach tsc,#(#2_TCL_SCRIPTS),#(eval #(call makeTclScripts,#(tsc),true,#1,#2,#3)))
+#(eval #(call addTargets,#(#2_TCL_SCRIPTS),#2,true,true,tsc))
+#(foreach tsc,#(#2_TCL_SCRIPTS_L),#(eval #(call makeTclScripts,#(tsc),false,#1,#2,#3)))
+#(eval #(call addTargets,#(#2_TCL_SCRIPTS_L),#2,true,false,tsc))
+#(foreach tlb,#(#2_TCL_LIBRARIES),#(eval #(call makeTclLibraries,#(tlb),true,#1,#2,#3)))
+#(eval #(call addTargets,#(#2_TCL_LIBRARIES),#2,true,true,tlb))
+#(foreach tlb,#(#2_TCL_LIBRARIES_L),#(eval #(call makeTclLibraries,#(tlb),false,#1,#2,#3)))
+#(eval #(call addTargets,#(#2_TCL_LIBRARIES_L),#2,true,false,tlb))
 $(foreach inc,$($2_INCLUDES),$(eval $(call makeIncludes,$(inc),true,$1,$2,$3)))
 $(eval $(call addTargets,$($2_INCLUDES),$2,false,true,inc))
 $(foreach cfg,$($2_CONFIGS),$(eval $(call makeConfigs,$(cfg),true,$1,$2,$3)))
@@ -413,7 +448,8 @@ $(eval $(call addTargets,$($2_INSTALL_FILES),$2,false,true,ins))
 #(warning INSTALL_TARGETS: $(INSTALL_TARGETS))
 #(warning CLEAN_DIST_TARGETS: $(CLEAN_DIST_TARGETS))
 
-$2: $(ALL_TARGETS)
+#(warning $2: $(ALL_TARGETS) $($2_PREQS))
+$2: $($2_PREQS) $(ALL_TARGETS)
 clean_$2: $(CLEAN_TARGETS)
 install_$2: $(INSTALL_TARGETS)
 clean_dist_$2: $(CLEAN_DIST_TARGETS)
@@ -429,6 +465,8 @@ $3/bin:
 	$(AT)$(if $(wildcard $3/bin),,mkdir $3/bin)
 $3/lib:
 	$(AT)$(if $(wildcard $3/lib),,mkdir $3/lib)
+$3/lib/ACScomponents: | $3/lib
+	$(AT)$(if $(wildcard $3/lib/ACScomponents),,mkdir $3/lib/ACScomponents)
 $3/lib/python: | $3/lib
 	$(AT)$(if $(wildcard $3/lib/python),,mkdir $3/lib/python)
 $3/lib/python/site-packages: | $3/lib/python
@@ -511,6 +549,10 @@ $(eval $1_PY_MODULES:=$(strip $(PY_MODULES)))
 $(eval $1_PY_MODULES_L:=$(strip $(PY_MODULES_L)))
 $(eval $1_PY_PACKAGES:=$(strip $(PY_PACKAGES)))
 $(eval $1_PY_PACKAGES_L:=$(strip $(PY_PACKAGES_L)))
+$(eval $1_JARFILES:=$(strip $(JARFILES)))
+$(eval $1_JARFILES_L:=$(strip $(JARFILES_L)))
+$(eval $1_COMPONENTS_JARFILES:=$(strip $(COMPONENTS_JARFILES)))
+$(eval $1_COMPONENTS_JARFILES_L:=$(strip $(COMPONENTS_JARFILES_L)))
 $(eval $1_TCL_SCRIPTS:=$(strip $(TCL_SCRIPTS)))
 $(eval $1_TCL_SCRIPTS_L:=$(strip $(TCL_SCRIPTS_L)))
 $(eval $1_INCLUDES:=$(strip $(INCLUDES)))
@@ -535,6 +577,10 @@ $(eval $1_PY_MODULES:=)
 $(eval $1_PY_MODULES_L:=)
 $(eval $1_PY_PACKAGES:=)
 $(eval $1_PY_PACKAGES_L:=)
+$(eval $1_JARFILES:=)
+$(eval $1_JARFILES_L:=)
+$(eval $1_COMPONENTS_JARFILES:=)
+$(eval $1_COMPONENTS_JARFILES_L:=)
 $(eval $1_TCL_SCRIPTS:=)
 $(eval $1_TCL_SCRIPTS_L:=)
 $(eval $1_INCLUDES:=)
@@ -558,6 +604,10 @@ $(eval PY_MODULES:=)
 $(eval PY_MODULES_L:=)
 $(eval PY_PACKAGES:=)
 $(eval PY_PACKAGES_L:=)
+$(eval JARFILES:=)
+$(eval JARFILES_L:=)
+$(eval COMPONENTS_JARFILES:=)
+$(eval COMPONENTS_JARFILES_L:=)
 $(eval TCL_SCRIPTS:=)
 $(eval TCL_SCRIPTS_L:=)
 $(eval INCLUDES:=)
